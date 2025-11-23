@@ -1,0 +1,163 @@
+<div class="my-bookings-container">
+  <div class="page-header">
+    <h1>My Bookings</h1>
+    <p>View and manage your movie ticket bookings</p>
+  </div>
+
+  <div class="bookings-filters">
+    <div class="filter-tabs">
+      <button 
+        class="filter-tab" 
+        [class.active]="activeFilter === 'all'"
+        (click)="setFilter('all')">
+        All Bookings
+      </button>
+      <button 
+        class="filter-tab" 
+        [class.active]="activeFilter === 'upcoming'"
+        (click)="setFilter('upcoming')">
+        Upcoming
+      </button>
+      <button 
+        class="filter-tab" 
+        [class.active]="activeFilter === 'past'"
+        (click)="setFilter('past')">
+        Past
+      </button>
+      <button 
+        class="filter-tab" 
+        [class.active]="activeFilter === 'cancelled'"
+        (click)="setFilter('cancelled')">
+        Cancelled
+      </button>
+    </div>
+    
+    <div class="search-box">
+      <input 
+        type="text" 
+        placeholder="Search bookings..." 
+        [(ngModel)]="searchTerm"
+        (input)="onSearch()">
+      <span class="search-icon">🔍</span>
+    </div>
+  </div>
+
+  <div class="bookings-list" *ngIf="filteredBookings.length > 0">
+    <div class="booking-card" *ngFor="let booking of filteredBookings">
+      <div class="booking-header">
+        <div class="movie-info">
+          <img 
+            [src]="booking.movie.posterUrl || 'assets/images/movies/default-poster.png'" 
+            [alt]="booking.movie.title"
+            class="movie-poster"
+            (error)="onImageError($event)">
+          <div class="movie-details">
+            <h3>{{ booking.movie.title }}</h3>
+            <div class="movie-meta">
+              <span class="genre">{{ booking.movie.genre }}</span>
+              <span class="rating">{{ booking.movie.rating }}</span>
+              <span class="duration">{{ booking.movie.duration }}m</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="booking-status">
+          <span 
+            class="status-badge" 
+            [class]="'status-' + booking.status.toLowerCase()">
+            {{ booking.status }}
+          </span>
+          <div class="booking-id">
+            #{{ booking.id }}
+          </div>
+        </div>
+      </div>
+
+      <div class="booking-details">
+        <div class="detail-row">
+          <div class="detail-item">
+            <span class="label">Theater:</span>
+            <span class="value">{{ booking.theater.name }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="label">Screen:</span>
+            <span class="value">{{ booking.screen }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="label">Date & Time:</span>
+            <span class="value">{{ booking.showtime | date:'MMM dd, yyyy - h:mm a' }}</span>
+          </div>
+        </div>
+        
+        <div class="detail-row">
+          <div class="detail-item">
+            <span class="label">Seats:</span>
+            <span class="value">{{ booking.seats.join(', ') }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="label">Total Amount:</span>
+            <span class="value amount">₹{{ booking.totalAmount }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="label">Payment:</span>
+            <span class="value">{{ booking.paymentMethod }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="booking-actions">
+        <button 
+          class="btn-secondary" 
+          (click)="downloadTicket(booking)"
+          *ngIf="booking.status === 'Confirmed'">
+          <span class="icon">📄</span>
+          Download Ticket
+        </button>
+        
+        <button 
+          class="btn-secondary" 
+          (click)="viewTicket(booking)"
+          *ngIf="booking.status === 'Confirmed'">
+          <span class="icon">🎫</span>
+          View E-Ticket
+        </button>
+        
+        <button 
+          class="btn-secondary" 
+          (click)="viewDetails(booking)">
+          <span class="icon">👁️</span>
+          View Details
+        </button>
+        
+        <button 
+          class="btn-danger" 
+          (click)="cancelBooking(booking)"
+          *ngIf="booking.status === 'Confirmed' && canCancel(booking)">
+          <span class="icon">❌</span>
+          Cancel
+        </button>
+        
+        <div class="refund-info" *ngIf="booking.status === 'Cancelled' && getRefundInfo(booking)">
+          <small>{{ getRefundInfo(booking) }}</small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="empty-state" *ngIf="filteredBookings.length === 0">
+    <div class="empty-icon">🎫</div>
+    <h3>No Bookings Found</h3>
+    <p>{{ getEmptyStateMessage() }}</p>
+    <button class="btn-primary" routerLink="/user/home" *ngIf="activeFilter === 'all'">
+      Book Your First Movie
+    </button>
+  </div>
+
+  <!-- E-Ticket Modal -->
+  <div class="modal-overlay" *ngIf="showTicket" (click)="closeTicket()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <button class="close-btn" (click)="closeTicket()">×</button>
+      <app-e-ticket [booking]="selectedBooking" *ngIf="selectedBooking"></app-e-ticket>
+    </div>
+  </div>
+</div>

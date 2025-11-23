@@ -1,0 +1,75 @@
+<div class="login-container">
+  <div class="login-wrapper">
+    <div class="login-visual">
+      <div class="visual-content">
+        <h2 class="visual-title">Welcome Back to RevTicket</h2>
+        <p class="visual-subtitle">Your premium movie booking experience awaits</p>
+        <div class="visual-features">
+          <div class="feature-item">
+            <span class="feature-icon">🎬</span>
+            <span>Latest Movies</span>
+          </div>
+          <div class="feature-item">
+            <span class="feature-icon">💺</span>
+            <span>Best Seats</span>
+          </div>
+          <div class="feature-item">
+            <span class="feature-icon">⚡</span>
+            <span>Instant Booking</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="login-form-section">
+      <div class="form-container">
+        <div class="form-header">
+          <h1 class="form-title">Login</h1>
+          <p class="form-subtitle">Enter your credentials to access your account</p>
+        </div>
+
+        <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="login-form">
+          <div class="form-group">
+            <label for="email" class="form-label">Email Address</label>
+            <div class="input-wrapper">
+              <span class="input-icon">📧</span>
+              <input type="email" id="email" formControlName="email" class="form-input" placeholder="Enter your email"
+                [class.error]="loginForm.get('email')?.invalid && loginForm.get('email')?.touched">
+            </div>
+            <div class="error-message" *ngIf="loginForm.get('email')?.invalid && loginForm.get('email')?.touched">
+              Please enter a valid email address
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="password" class="form-label">Password</label>
+            <div class="input-wrapper">
+              <span class="input-icon">🔒</span>
+              <input type="password" id="password" formControlName="password" class="form-input"
+                placeholder="Enter your password"
+                [class.error]="loginForm.get('password')?.invalid && loginForm.get('password')?.touched">
+            </div>
+            <div class="error-message" *ngIf="loginForm.get('password')?.invalid && loginForm.get('password')?.touched">
+              Password must be at least 6 characters
+            </div>
+          </div>
+
+          <div class="error-message" *ngIf="error">{{ error }}</div>
+
+          <button type="submit" class="submit-btn" [disabled]="loginForm.invalid || loading">
+            <span *ngIf="!loading">Login</span>
+            <span *ngIf="loading" class="loading-spinner">Loging in...</span>
+          </button>
+        </form>
+
+        <div class="form-footer">
+          <a routerLink="/auth/forgot-password" class="forgot-link">Forgot your password?</a>
+          <p class="signup-text">
+            Don't have an account?
+            <a routerLink="/auth/signup" class="signup-link">Create one</a>
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

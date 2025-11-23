@@ -1,0 +1,101 @@
+<div class="payment-container">
+  <h2>Payment</h2>
+  
+  <div class="booking-summary">
+    <h3>Booking Summary</h3>
+    <p>Movie: Sample Movie</p>
+    <p>Seats: 3 seats</p>
+    <p>Total: ₹600</p>
+  </div>
+
+  <div class="payment-methods">
+    <h3>Select Payment Method</h3>
+    <div class="method-options">
+      <label class="method-option" [class.active]="paymentMethod === 'card'">
+        <input type="radio" value="card" [(ngModel)]="paymentMethod" (change)="onPaymentMethodChange('card')">
+        <span>💳 Credit/Debit Card</span>
+      </label>
+      <label class="method-option" [class.active]="paymentMethod === 'upi'">
+        <input type="radio" value="upi" [(ngModel)]="paymentMethod" (change)="onPaymentMethodChange('upi')">
+        <span>📱 UPI</span>
+      </label>
+      <label class="method-option" [class.active]="paymentMethod === 'wallet'">
+        <input type="radio" value="wallet" [(ngModel)]="paymentMethod" (change)="onPaymentMethodChange('wallet')">
+        <span>💰 Wallet</span>
+      </label>
+    </div>
+  </div>
+
+  <!-- Card Payment Form -->
+  <form *ngIf="paymentMethod === 'card'" [formGroup]="cardForm" class="payment-form">
+    <h4>Card Details</h4>
+    <div class="form-group">
+      <label>Cardholder Name</label>
+      <input type="text" formControlName="cardholderName" class="form-control" placeholder="John Doe">
+    </div>
+    <div class="form-group">
+      <label>Card Number</label>
+      <input type="text" formControlName="cardNumber" class="form-control" placeholder="1234567890123456" maxlength="16">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Expiry Month</label>
+        <select formControlName="expiryMonth" class="form-control">
+          <option value="">MM</option>
+          <option *ngFor="let month of [1,2,3,4,5,6,7,8,9,10,11,12]" [value]="month">{{ month.toString().padStart(2, '0') }}</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Expiry Year</label>
+        <select formControlName="expiryYear" class="form-control">
+          <option value="">YYYY</option>
+          <option *ngFor="let year of [2024,2025,2026,2027,2028,2029,2030]" [value]="year">{{ year }}</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>CVV</label>
+        <input type="text" formControlName="cvv" class="form-control" placeholder="123" maxlength="4">
+      </div>
+    </div>
+  </form>
+
+  <!-- UPI Payment Form -->
+  <form *ngIf="paymentMethod === 'upi'" [formGroup]="upiForm" class="payment-form">
+    <h4>UPI Details</h4>
+    <div class="form-group">
+      <label>UPI ID</label>
+      <input type="text" formControlName="upiId" class="form-control" placeholder="yourname@paytm">
+    </div>
+    <div class="upi-apps">
+      <p>Or pay using:</p>
+      <div class="app-buttons">
+        <button type="button" class="app-btn">📱 PhonePe</button>
+        <button type="button" class="app-btn">💰 Paytm</button>
+        <button type="button" class="app-btn">🏦 GPay</button>
+      </div>
+    </div>
+  </form>
+
+  <!-- Wallet Payment -->
+  <div *ngIf="paymentMethod === 'wallet'" class="payment-form">
+    <h4>Wallet Payment</h4>
+    <div class="wallet-options">
+      <div class="wallet-item">
+        <span>💰 Paytm Wallet</span>
+        <span class="balance">Balance: ₹1,200</span>
+      </div>
+      <div class="wallet-item">
+        <span>📱 PhonePe Wallet</span>
+        <span class="balance">Balance: ₹800</span>
+      </div>
+    </div>
+  </div>
+
+  <button 
+    type="button" 
+    class="btn-primary pay-button" 
+    (click)="processPayment()"
+    [disabled]="processing">
+    {{ processing ? 'Processing...' : 'Pay ₹600' }}
+  </button>
+</div>

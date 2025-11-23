@@ -1,0 +1,10 @@
+<div class="alert-container">
+  <div 
+    *ngFor="let alert of alerts$ | async" 
+    class="alert"
+    [ngClass]="'alert-' + alert.type">
+    <span class="alert-icon">{{ getIcon(alert.type) }}</span>
+    <span class="alert-message">{{ alert.message }}</span>
+    <button class="alert-close" (click)="closeAlert(alert.id)">×</button>
+  </div>
+</div>

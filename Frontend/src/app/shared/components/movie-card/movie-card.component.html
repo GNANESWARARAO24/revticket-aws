@@ -1,0 +1,61 @@
+<div class="movie-card">
+  <div class="card-image">
+    <img [src]="movie.posterUrl" [alt]="movie.title" class="poster-img">
+    <div class="image-overlay">
+      <div class="overlay-content">
+        <button class="play-btn" (click)="bookNow()">
+          <span class="play-icon">🎫</span>
+        </button>
+        <div class="quick-actions">
+          <button class="action-btn showtimes" title="View Showtimes" (click)="viewShowtimes()">
+            <span class="action-icon">🕐</span>
+          </button>
+          <button class="action-btn theaters" title="Find Theaters" (click)="viewDetails()">
+            <span class="action-icon">🏢</span>
+          </button>
+        </div>
+      </div>
+    </div>
+    <div class="rating-badge">
+      <span class="rating-star">⭐</span>
+      <span class="rating-value">{{ movie.rating }}</span>
+    </div>
+    <div class="genre-badge">{{ movie.genre[0] }}</div>
+  </div>
+  
+  <div class="card-content">
+    <div class="movie-header">
+      <h3 class="movie-title" (click)="viewDetails()">{{ movie.title }}</h3>
+      <div class="movie-meta">
+        <span class="duration">
+          <span class="meta-icon">🕐</span>
+          {{ movie.duration }}m
+        </span>
+        <span class="language">
+          <span class="meta-icon">🌍</span>
+          {{ movie.language }}
+        </span>
+      </div>
+    </div>
+    
+    <div class="movie-genres">
+      <span class="genre-chip" *ngFor="let genre of movie.genre.slice(0, 2)">
+        {{ genre }}
+      </span>
+      <span class="more-genres" *ngIf="movie.genre.length > 2">
+        +{{ movie.genre.length - 2 }}
+      </span>
+    </div>
+    
+    <div class="card-actions">
+      <button class="btn-secondary" (click)="viewShowtimes()">
+        <span class="btn-icon">🕐</span>
+        Showtimes
+      </button>
+      <button class="btn-primary" (click)="bookNow()">
+        <span class="btn-icon">🎫</span>
+        Book Tickets
+      </button>
+    </div>
+  </div>
+</div>

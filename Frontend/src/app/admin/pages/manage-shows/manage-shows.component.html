@@ -1,0 +1,193 @@
+<div class="manage-shows-container">
+  <div class="page-header">
+    <div class="header-content">
+      <h1>Manage Shows</h1>
+      <p>Schedule and manage movie showtimes</p>
+    </div>
+    <button class="btn-primary" (click)="addNewShow()">
+      <span class="icon">+</span>
+      Add New Show
+    </button>
+  </div>
+
+  <div class="filters-section">
+    <div class="search-box">
+      <input type="text" placeholder="Search shows..." [(ngModel)]="searchTerm" (input)="onSearch()">
+      <span class="search-icon">🔍</span>
+    </div>
+
+    <div class="filter-controls">
+      <!-- Movie Filter -->
+      <select [(ngModel)]="selectedMovie" (change)="onFilterChange()">
+        <option value="">All Movies</option>
+        <option *ngFor="let movie of movies" [value]="movie.title">
+          {{ movie.title }}
+        </option>
+      </select>
+
+      <!-- Theater Filter -->
+      <select [(ngModel)]="selectedTheater" (change)="onFilterChange()">
+        <option value="">All Theaters</option>
+        <option *ngFor="let theater of theaters" [value]="theater.name">
+          {{ theater.name }}
+        </option>
+      </select>
+
+      <!-- Date Filter -->
+      <input type="date" [(ngModel)]="selectedDate" (change)="onFilterChange()" class="date-filter">
+    </div>
+
+    <!-- Add Show Form -->
+    <div class="add-show-form" *ngIf="showAddForm">
+      <div class="form-header">
+        <h2>{{ isEditMode ? 'Edit Show' : 'Add New Show' }}</h2>
+        <button class="close-btn" (click)="cancelAdd()">×</button>
+      </div>
+
+      <form class="show-form" (ngSubmit)="saveShow()">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Movie *</label>
+            <select [(ngModel)]="newShow.movieId" name="movieId" required>
+              <option value="">Select Movie</option>
+              <option *ngFor="let movie of movies" [value]="movie.id">{{ movie.title }}</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Theater *</label>
+            <select [(ngModel)]="newShow.theaterId" name="theaterId" required>
+              <option value="">Select Theater</option>
+              <option *ngFor="let theater of theaters" [value]="theater.id">{{ theater.name }}</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Screen *</label>
+            <input type="text" [(ngModel)]="newShow.screen" name="screen" placeholder="e.g., Screen 1" required>
+          </div>
+          <div class="form-group">
+            <label>Show Date & Time *</label>
+            <input type="datetime-local" [(ngModel)]="newShow.showDateTime" name="showDateTime" required>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Ticket Price (₹) *</label>
+            <input type="number" [(ngModel)]="newShow.ticketPrice" name="ticketPrice" min="0" step="0.01" required>
+          </div>
+          <div class="form-group">
+            <label>Total Seats *</label>
+            <input type="number" [(ngModel)]="newShow.totalSeats" name="totalSeats" min="1" required>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Status *</label>
+            <select [(ngModel)]="newShow.status" name="status" required>
+              <option value="ACTIVE">Active</option>
+              <option value="COMPLETED">Completed</option>
+              <option value="CANCELLED">Cancelled</option>
+            </select>
+          </div>
+          <div class="form-group"></div>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" class="btn-secondary" (click)="cancelAdd()" [disabled]="submitting">Cancel</button>
+          <button type="submit" class="btn-primary" [disabled]="submitting">
+            {{ submitting ? (isEditMode ? 'Updating...' : 'Saving...') : (isEditMode ? 'Update Show' : 'Save Show') }}
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <div class="loading-state" *ngIf="loading">
+      <div class="spinner"></div>
+      <p>Loading shows...</p>
+    </div>
+
+    <div class="shows-grid" *ngIf="!loading && filteredShows.length > 0 && !showAddForm">
+      <div class="show-card" *ngFor="let show of filteredShows">
+        <div class="show-header">
+          <div class="movie-info">
+            <img [src]="show.movie.posterUrl" [alt]="show.movie.title" class="movie-poster"
+              (error)="onImageError($event)">
+            <div class="movie-details">
+              <h3>{{ show.movie.title }}</h3>
+              <div class="movie-meta">
+                <span class="genre">{{ show.movie.genre }}</span>
+                <span class="duration">{{ show.movie.duration }}m</span>
+                <span class="rating">{{ show.movie.rating }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="show-status">
+            <span class="status-badge" [class]="'status-' + show.status.toLowerCase()">
+              {{ show.status }}
+            </span>
+          </div>
+        </div>
+
+        <div class="show-details">
+          <div class="detail-row">
+            <div class="detail-item">
+              <span class="label">Theater:</span>
+              <span class="value">{{ show.theater.name }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="label">Screen:</span>
+              <span class="value">{{ show.screen }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="label">Date & Time:</span>
+              <span class="value">{{ show.showtime | date:'MMM dd, yyyy - h:mm a' }}</span>
+            </div>
+          </div>
+
+          <div class="detail-row">
+            <div class="detail-item">
+              <span class="label">Price:</span>
+              <span class="value price">₹{{ show.ticketPrice }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="label">Available Seats:</span>
+              <span class="value">{{ show.availableSeats }}/{{ show.totalSeats }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="label">Bookings:</span>
+              <span class="value">{{ show.totalSeats - show.availableSeats }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="show-actions">
+          <button class="btn-secondary" (click)="editShow(show)">
+            <span class="icon">✏️</span>
+            Edit
+          </button>
+          <button class="btn-secondary" (click)="viewBookings(show)">
+            <span class="icon">👁️</span>
+            View Bookings
+          </button>
+          <button class="btn-danger" (click)="deleteShow(show)" *ngIf="show.status !== 'Completed'">
+            <span class="icon">🗑️</span>
+            Delete
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="empty-state" *ngIf="!loading && filteredShows.length === 0 && !showAddForm">
+      <div class="empty-icon">🎬</div>
+      <h3>No Shows Found</h3>
+      <p>{{ getEmptyStateMessage() }}</p>
+      <button class="btn-primary" (click)="addNewShow()" *ngIf="!hasFilters()">
+        Add First Show
+      </button>
+    </div>
+  </div>

@@ -1,0 +1,77 @@
+<div class="showtimes-container">
+  <div class="page-header">
+    <div class="header-content">
+      <h1 class="page-title">Select Showtime</h1>
+      <div class="movie-info" *ngIf="movie">
+        <div class="movie-poster">
+          <img [src]="movie.posterUrl" [alt]="movie.title" class="poster-img">
+        </div>
+        <div class="movie-details">
+          <h2 class="movie-title">{{ movie.title }}</h2>
+          <div class="movie-meta">
+            <span class="rating">⭐ {{ movie.rating }}/10</span>
+            <span class="duration">{{ movie.duration }} min</span>
+            <span class="language">{{ movie.language }}</span>
+          </div>
+          <div class="genre-tags">
+            <span class="genre-tag" *ngFor="let genre of movie.genre">{{ genre }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="content-section">
+    <div class="section-header">
+      <h3 class="section-title">Available Shows</h3>
+      <div class="date-selector">
+        <button class="date-btn active">Today</button>
+        <button class="date-btn">Tomorrow</button>
+        <button class="date-btn">Day After</button>
+      </div>
+    </div>
+
+    <div class="showtimes-grid">
+      <div class="showtime-card" *ngFor="let showtime of showtimes" (click)="selectShowtime(showtime)">
+        <div class="card-header">
+          <div class="theater-info">
+            <div class="theater-logo">
+              <img [src]="showtime.theaterIcon" [alt]="showtime.theaterName" class="theater-icon"
+                   (error)="onImageError($event, showtime)">
+            </div>
+            <div class="theater-details">
+              <h4 class="theater-name">{{ showtime.theaterName }}</h4>
+              <p class="theater-location">Premium Experience</p>
+            </div>
+          </div>
+          <div class="availability-badge" [class.low]="showtime.availableSeats < 20">
+            {{ showtime.availableSeats }} seats left
+          </div>
+        </div>
+        
+        <div class="card-body">
+          <div class="showtime-info">
+            <div class="time-slot">
+              <span class="time-label">Show Time</span>
+              <span class="time-value">{{ showtime.showTime }}</span>
+            </div>
+            <div class="price-info">
+              <span class="price-label">Price</span>
+              <span class="price-value">₹{{ showtime.price }}</span>
+            </div>
+          </div>
+          
+          <div class="card-footer">
+            <div class="seat-info">
+              <div class="seat-bar">
+                <div class="seat-fill" [style.width.%]="(showtime.totalSeats - showtime.availableSeats) / showtime.totalSeats * 100"></div>
+              </div>
+              <span class="seat-text">{{ showtime.totalSeats - showtime.availableSeats }}/{{ showtime.totalSeats }} booked</span>
+            </div>
+            <button class="select-btn">Select Seats</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

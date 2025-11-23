@@ -1,0 +1,65 @@
+<div class="seat-booking-container">
+  <!-- Movie Info Header -->
+  <div class="movie-info" *ngIf="movie">
+    <div class="movie-poster">
+      <img [src]="movie.posterUrl" [alt]="movie.title">
+    </div>
+    <div class="movie-details">
+      <h1>{{ movie.title }}</h1>
+      <div class="movie-meta">
+        <span class="rating">⭐ {{ movie.rating }}/10</span>
+        <span class="duration">{{ movie.duration }} min</span>
+        <span class="genre">{{ movie.genre.join(', ') }}</span>
+      </div>
+      <div class="show-info">
+        <div class="info-item">
+          <strong>{{ theater }}</strong>
+        </div>
+        <div class="info-item">
+          <strong>{{ showDate }}</strong>
+          <span>{{ showtime }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Seat Selection -->
+  <div class="seat-selection">
+    <h2>Select Your Seats</h2>
+    <app-seat-selector 
+      [showtimeId]="showtimeId"
+      (seatsSelected)="onSeatsSelected($event)"
+      (totalAmountChanged)="onTotalAmountChanged($event)">
+    </app-seat-selector>
+  </div>
+
+  <!-- Booking Summary -->
+  <div class="booking-summary" *ngIf="selectedSeats.length > 0">
+    <div class="summary-content">
+      <div class="selected-info">
+        <h3>Booking Summary</h3>
+        <div class="summary-row">
+          <span>Selected Seats:</span>
+          <span class="seats-list">{{ selectedSeats.join(', ') }}</span>
+        </div>
+        <div class="summary-row">
+          <span>Number of Tickets:</span>
+          <span>{{ selectedSeats.length }}</span>
+        </div>
+        <div class="summary-row total">
+          <span>Total Amount:</span>
+          <span class="amount">₹{{ totalAmount }}</span>
+        </div>
+      </div>
+      <button class="btn-proceed" (click)="proceedToPayment()">
+        Proceed to Payment
+        <span class="arrow">→</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Empty State -->
+  <div class="empty-state" *ngIf="selectedSeats.length === 0">
+    <p>Please select at least one seat to continue</p>
+  </div>
+</div>

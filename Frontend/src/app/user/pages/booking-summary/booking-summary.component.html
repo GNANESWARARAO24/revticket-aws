@@ -1,0 +1,45 @@
+<div class="summary-container" *ngIf="bookingData">
+  <div class="summary-card">
+    <h2>Booking Summary</h2>
+    
+    <div class="movie-info">
+      <h3>{{ bookingData.movieTitle }}</h3>
+      <p class="theatre">{{ bookingData.theatreName }}</p>
+      <p class="showtime">{{ bookingData.showDate }} | {{ bookingData.showTime }}</p>
+    </div>
+
+    <div class="seat-info">
+      <h4>Selected Seats</h4>
+      <div class="seats">
+        <span class="seat" *ngFor="let seat of bookingData.selectedSeats">
+          {{ seat }}
+        </span>
+      </div>
+    </div>
+
+    <div class="price-breakdown">
+      <h4>Price Breakdown</h4>
+      <div class="price-item">
+        <span>Tickets ({{ bookingData.selectedSeats?.length }})</span>
+        <span>₹{{ bookingData.ticketPrice * bookingData.selectedSeats?.length }}</span>
+      </div>
+      <div class="price-item">
+        <span>Convenience Fee</span>
+        <span>₹{{ bookingData.convenienceFee || 50 }}</span>
+      </div>
+      <div class="price-item total">
+        <span>Total Amount</span>
+        <span>₹{{ bookingData.totalAmount }}</span>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn-secondary" (click)="goBack()">
+        Back to Seat Selection
+      </button>
+      <button class="btn-primary" (click)="proceedToPayment()">
+        Proceed to Payment
+      </button>
+    </div>
+  </div>
+</div>

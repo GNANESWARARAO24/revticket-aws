@@ -1,0 +1,37 @@
+package com.revticket.controller;
+
+import com.revticket.dto.PaymentRequest;
+import com.revticket.entity.Payment;
+import com.revticket.service.PaymentService;
+import jakarta.validation.Valid;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
+
+@RestController
+@RequestMapping("/api/payments")
+@CrossOrigin(origins = "*")
+public class PaymentController {
+
+    @Autowired
+    private PaymentService paymentService;
+
+    @PostMapping
+    public ResponseEntity<Map<String, Object>> processPayment(@Valid @RequestBody PaymentRequest request) {
+        Payment payment = paymentService.processPayment(request);
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "transactionId", payment.getTransactionId()
+        ));
+    }
+
+    @GetMapping("/{transactionId}/status")
+    public ResponseEntity<Map<String, String>> getPaymentStatus(@PathVariable String transactionId) {
+        return paymentService.getPaymentStatus(transactionId)
+                .map(payment -> ResponseEntity.ok(Map.of("status", payment.getStatus().name())))
+                .orElse(ResponseEntity.notFound().build());
+    }
+}
+

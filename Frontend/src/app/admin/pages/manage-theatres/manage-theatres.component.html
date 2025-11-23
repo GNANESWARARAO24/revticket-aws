@@ -1,0 +1,63 @@
+<div class="manage-theatres-container">
+  <div class="header">
+    <h2>Manage Theatres</h2>
+    <button class="btn-primary" (click)="addTheatre()">Add Theatre</button>
+  </div>
+
+  <div class="theatre-form" *ngIf="showForm">
+    <h3>{{ editingTheatre ? 'Edit Theatre' : 'Add New Theatre' }}</h3>
+    <form [formGroup]="theatreForm" (ngSubmit)="onSubmit()">
+      <div class="form-row">
+        <div class="form-group">
+          <label for="name">Theatre Name</label>
+          <input type="text" id="name" formControlName="name" class="form-control">
+        </div>
+        <div class="form-group">
+          <label for="location">Location</label>
+          <input type="text" id="location" formControlName="location" class="form-control">
+        </div>
+      </div>
+      
+      <div class="form-group">
+        <label for="address">Address</label>
+        <textarea id="address" formControlName="address" class="form-control" rows="3"></textarea>
+      </div>
+      
+      <div class="form-group">
+        <label for="totalScreens">Total Screens</label>
+        <input type="number" id="totalScreens" formControlName="totalScreens" class="form-control" min="1">
+      </div>
+      
+      <div class="form-actions">
+        <button type="button" class="btn-secondary" (click)="cancelForm()">Cancel</button>
+        <button type="submit" class="btn-primary" [disabled]="theatreForm.invalid">
+          {{ editingTheatre ? 'Update' : 'Add' }} Theatre
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <div class="theatres-list">
+    <div class="theatre-card" *ngFor="let theatre of theatres">
+      <div class="theatre-image">
+        <img [src]="theatre.imageUrl" [alt]="theatre.name" class="theatre-img"
+             (error)="onImageError($event, theatre)">
+      </div>
+      <div class="theatre-info">
+        <h4>{{ theatre.name }}</h4>
+        <p class="location">📍 {{ theatre.location }}</p>
+        <p class="address">{{ theatre.address }}</p>
+        <p class="screens">🎬 {{ theatre.totalScreens }} Screens</p>
+      </div>
+      <div class="theatre-actions">
+        <span class="status" [class.active]="theatre.isActive" [class.inactive]="!theatre.isActive">
+          {{ theatre.isActive ? 'Active' : 'Inactive' }}
+        </span>
+        <button class="btn-edit" (click)="editTheatre(theatre)">Edit</button>
+        <button class="btn-toggle" (click)="toggleStatus(theatre)">
+          {{ theatre.isActive ? 'Deactivate' : 'Activate' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
