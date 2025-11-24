@@ -9,7 +9,6 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.UUID;
 
 @Service
 public class SeatService {
@@ -29,8 +28,8 @@ public class SeatService {
                 .orElseThrow(() -> new RuntimeException("Showtime not found"));
 
         // Create seat layout (8 rows, 12 seats per row)
-        String[] rows = {"A", "B", "C", "D", "E", "F", "G", "H"};
-        
+        String[] rows = { "A", "B", "C", "D", "E", "F", "G", "H" };
+
         for (String row : rows) {
             for (int i = 1; i <= 12; i++) {
                 Seat seat = new Seat();
@@ -39,7 +38,7 @@ public class SeatService {
                 seat.setNumber(i);
                 seat.setIsBooked(false);
                 seat.setIsHeld(false);
-                
+
                 // Set price based on row
                 if (row.equals("A") || row.equals("B")) {
                     seat.setPrice(150.0);
@@ -51,7 +50,7 @@ public class SeatService {
                     seat.setPrice(300.0);
                     seat.setType(Seat.SeatType.VIP);
                 }
-                
+
                 seatRepository.save(seat);
             }
         }
@@ -61,11 +60,11 @@ public class SeatService {
         for (String seatId : seatIds) {
             Seat seat = seatRepository.findById(seatId)
                     .orElseThrow(() -> new RuntimeException("Seat not found: " + seatId));
-            
+
             if (seat.getIsBooked()) {
                 throw new RuntimeException("Seat " + seatId + " is already booked");
             }
-            
+
             seat.setIsHeld(true);
             seat.setHoldExpiry(LocalDateTime.now().plusMinutes(10)); // 10 minute hold
             seat.setSessionId(sessionId);
@@ -85,4 +84,3 @@ public class SeatService {
         }
     }
 }
-
