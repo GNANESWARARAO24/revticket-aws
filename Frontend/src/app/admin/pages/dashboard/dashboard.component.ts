@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { Subject, interval } from 'rxjs';
@@ -14,7 +14,10 @@ import { AlertService } from '../../../core/services/alert.service';
   styleUrls: ['./dashboard.component.css']
 })
 export class DashboardComponent implements OnInit, OnDestroy {
-  stats: DashboardStats = {
+  private adminService = inject(AdminService);
+  private alertService = inject(AlertService);
+
+  stats = signal<DashboardStats>({
     totalMovies: 0,
     totalBookings: 0,
     totalRevenue: 0,
@@ -22,20 +25,15 @@ export class DashboardComponent implements OnInit, OnDestroy {
     todayBookings: 0,
     cancelledBookings: 0,
     activeMovies: 0
-  };
+  });
 
-  revenueData: RevenueData[] = [];
-  recentActivities: RecentActivity[] = [];
-  selectedPeriod: number = 7;
-  loading = true;
+  revenueData = signal<RevenueData[]>([]);
+  recentActivities = signal<RecentActivity[]>([]);
+  selectedPeriod = signal(7);
+  loading = signal(true);
 
   private destroy$ = new Subject<void>();
-  private refreshInterval = interval(30000); // Refresh every 30 seconds
-
-  constructor(
-    private adminService: AdminService,
-    private alertService: AlertService
-  ) {}
+  private refreshInterval = interval(30000);
 
   ngOnInit(): void {
     this.loadDashboardData();
@@ -55,17 +53,16 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   loadDashboardData(showLoading: boolean = true): void {
     if (showLoading) {
-      this.loading = true;
+      this.loading.set(true);
     }
 
     this.adminService.getDashboardStats().subscribe({
       next: (stats) => {
-        this.stats = stats;
-        this.loading = false;
+        this.stats.set(stats);
+        this.loading.set(false);
       },
-      error: (err) => {
-        console.error('Error loading dashboard stats:', err);
-        this.loading = false;
+      error: () => {
+        this.loading.set(false);
       }
     });
 
@@ -74,25 +71,21 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   loadRevenueData(): void {
-    this.adminService.getRevenueData(this.selectedPeriod).subscribe({
+    this.adminService.getRevenueData(this.selectedPeriod()).subscribe({
       next: (data) => {
-        this.revenueData = data;
+        this.revenueData.set(data);
         this.updateChart();
       },
-      error: (err) => {
-        console.error('Error loading revenue data:', err);
-      }
+      error: () => {}
     });
   }
 
   loadRecentActivities(): void {
     this.adminService.getRecentActivity(10).subscribe({
       next: (activities) => {
-        this.recentActivities = activities;
+        this.recentActivities.set(activities);
       },
-      error: (err) => {
-        console.error('Error loading recent activities:', err);
-      }
+      error: () => {}
     });
   }
 
@@ -101,7 +94,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   onPeriodChange(period: number): void {
-    this.selectedPeriod = period;
+    this.selectedPeriod.set(period);
     this.loadRevenueData();
   }
 
@@ -111,8 +104,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   getMaxRevenue(): number {
-    if (this.revenueData.length === 0) return 100;
-    return Math.max(...this.revenueData.map(d => d.revenue), 100);
+    if (this.revenueData().length === 0) return 100;
+    return Math.max(...this.revenueData().map(d => d.revenue), 100);
   }
 
   getBarHeight(revenue: number): string {
@@ -142,12 +135,13 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   getRevenueChange(): { value: number; isPositive: boolean } {
-    if (this.revenueData.length < 2) {
+    const data = this.revenueData();
+    if (data.length < 2) {
       return { value: 0, isPositive: true };
     }
     
-    const current = this.revenueData[this.revenueData.length - 1]?.revenue || 0;
-    const previous = this.revenueData[this.revenueData.length - 2]?.revenue || 0;
+    const current = data[data.length - 1]?.revenue || 0;
+    const previous = data[data.length - 2]?.revenue || 0;
     
     if (previous === 0) {
       return { value: 0, isPositive: true };

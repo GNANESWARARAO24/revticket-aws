@@ -1,4 +1,4 @@
-<div class="booking-success-container" *ngIf="booking; else loadingState">
+<div class="booking-success-container" *ngIf="booking(); else loadingState">
   <div class="success-card">
     <div class="success-header">
       <div class="success-icon">
@@ -18,27 +18,27 @@
         <div class="detail-grid">
           <div class="detail-item">
             <span class="label">Booking ID</span>
-            <span class="value">#{{ booking.id }}</span>
+            <span class="value">#{{ booking()!.id }}</span>
           </div>
           <div class="detail-item">
             <span class="label">Movie</span>
-            <span class="value">{{ booking.movieTitle }}</span>
+            <span class="value">{{ booking()!.movieTitle }}</span>
           </div>
           <div class="detail-item">
             <span class="label">Theater</span>
-            <span class="value">{{ booking.theaterName }}</span>
+            <span class="value">{{ booking()!.theaterName }}</span>
           </div>
-          <div class="detail-item" *ngIf="booking.screen">
+          <div class="detail-item" *ngIf="booking()!.screen">
             <span class="label">Screen</span>
-            <span class="value">{{ booking.screen }}</span>
+            <span class="value">{{ booking()!.screen }}</span>
           </div>
           <div class="detail-item">
             <span class="label">Date & Time</span>
-            <span class="value">{{ booking.showtime | date:'MMM dd, yyyy - h:mm a' }}</span>
+            <span class="value">{{ booking()!.showtime | date:'MMM dd, yyyy - h:mm a' }}</span>
           </div>
           <div class="detail-item">
             <span class="label">Seats</span>
-            <span class="value">{{ booking.seats.join(', ') }}</span>
+            <span class="value">{{ booking()!.seats.join(', ') }}</span>
           </div>
         </div>
       </div>
@@ -46,21 +46,21 @@
       <div class="detail-section">
         <h3>Payment Summary</h3>
         <div class="payment-breakdown">
-          <div class="payment-row" *ngIf="booking.ticketPrice">
-            <span>Tickets ({{ booking.seats.length }} × ₹{{ booking.ticketPrice }})</span>
-            <span>₹{{ booking.seats.length * (booking.ticketPrice || 0) }}</span>
+          <div class="payment-row" *ngIf="booking()!.ticketPrice">
+            <span>Tickets ({{ booking()!.seats.length }} × ₹{{ booking()!.ticketPrice }})</span>
+            <span>₹{{ booking()!.seats.length * (booking()!.ticketPrice || 0) }}</span>
           </div>
-          <div class="payment-row" *ngIf="booking.convenienceFee">
+          <div class="payment-row" *ngIf="booking()!.convenienceFee">
             <span>Convenience Fee</span>
-            <span>₹{{ booking.convenienceFee }}</span>
+            <span>₹{{ booking()!.convenienceFee }}</span>
           </div>
-          <div class="payment-row" *ngIf="booking.gst">
+          <div class="payment-row" *ngIf="booking()!.gst">
             <span>GST</span>
-            <span>₹{{ booking.gst }}</span>
+            <span>₹{{ booking()!.gst }}</span>
           </div>
           <div class="payment-row total">
             <span>Total Amount</span>
-            <span>₹{{ booking.totalAmount }}</span>
+            <span>₹{{ booking()!.totalAmount }}</span>
           </div>
         </div>
       </div>

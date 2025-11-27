@@ -39,7 +39,7 @@ public class BookingController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<BookingResponse> getBookingById(@PathVariable String id) {
+    public ResponseEntity<BookingResponse> getBookingById(@PathVariable("id") String id) {
         return bookingService.getBookingById(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
@@ -47,7 +47,7 @@ public class BookingController {
 
     @PostMapping("/{id}/cancel")
     public ResponseEntity<BookingResponse> cancelBooking(
-            @PathVariable String id,
+            @PathVariable("id") String id,
             @RequestBody(required = false) String reason) {
         return ResponseEntity.ok(bookingService.cancelBooking(id, reason));
     }

@@ -1,4 +1,4 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
@@ -19,10 +19,10 @@ export class SignupComponent implements OnInit {
   private alertService = inject(AlertService);
 
   signupForm: FormGroup;
-  loading = false;
-  error = '';
-  showPassword = false;
-  showConfirmPassword = false;
+  loading = signal(false);
+  error = signal('');
+  showPassword = signal(false);
+  showConfirmPassword = signal(false);
 
   constructor() {
     this.signupForm = this.fb.group({
@@ -62,8 +62,8 @@ export class SignupComponent implements OnInit {
       return;
     }
 
-    this.loading = true;
-    this.error = '';
+    this.loading.set(true);
+    this.error.set('');
 
     const formValue = this.signupForm.value;
     const signupData = {
@@ -79,24 +79,23 @@ export class SignupComponent implements OnInit {
 
     this.authService.signup(signupData).subscribe({
       next: (response) => {
-        this.loading = false;
+        this.loading.set(false);
         this.alertService.success('Account created successfully! Welcome to RevTicket.');
         this.router.navigate(['/user/home']);
       },
       error: (err) => {
-        this.loading = false;
-        this.error = err.error?.message || 'Registration failed. Please try again.';
-        console.error('Signup error:', err);
+        this.loading.set(false);
+        this.error.set(err.error?.message || 'Registration failed. Please try again.');
       }
     });
   }
 
   togglePasswordVisibility(): void {
-    this.showPassword = !this.showPassword;
+    this.showPassword.update(v => !v);
   }
 
   toggleConfirmPasswordVisibility(): void {
-    this.showConfirmPassword = !this.showConfirmPassword;
+    this.showConfirmPassword.update(v => !v);
   }
 
   hasError(fieldName: string, errorType: string): boolean {

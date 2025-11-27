@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Movie } from '../../../core/models/movie.model';
@@ -16,15 +16,26 @@ import { AlertService } from '../../../core/services/alert.service';
   styleUrls: ['./showtimes.component.css']
 })
 export class ShowtimesComponent implements OnInit {
-  movie!: Movie;
-  movieId!: string;
-  movieSlug!: string;
-  showtimes: Showtime[] = [];
-  groupedShowtimes: { [key: string]: Showtime[] } = {};
-  loadingMovie = true;
-  loadingShowtimes = true;
-  selectedDate = new Date();
-  errorMessage = '';
+  movie = signal<Movie | null>(null);
+  movieId = signal('');
+  movieSlug = signal('');
+  showtimes = signal<Showtime[]>([]);
+  loadingMovie = signal(true);
+  loadingShowtimes = signal(true);
+  selectedDate = signal(new Date());
+  errorMessage = signal('');
+  
+  groupedShowtimes = computed(() => {
+    const grouped: { [key: string]: Showtime[] } = {};
+    this.showtimes().forEach(showtime => {
+      const theaterName = showtime.theater?.name || 'Theater';
+      if (!grouped[theaterName]) {
+        grouped[theaterName] = [];
+      }
+      grouped[theaterName].push(showtime);
+    });
+    return grouped;
+  });
 
   constructor(
     private route: ActivatedRoute,
@@ -35,10 +46,13 @@ export class ShowtimesComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    this.movieId = this.route.snapshot.paramMap.get('id') || '';
-    this.movieSlug = this.route.snapshot.paramMap.get('slug') || '';
+    const id = this.route.snapshot.paramMap.get('id') || '';
+    const slug = this.route.snapshot.paramMap.get('slug') || '';
     
-    if (!this.movieId) {
+    this.movieId.set(id);
+    this.movieSlug.set(slug);
+    
+    if (!id) {
       this.alertService.error('Movie not found');
       this.router.navigate(['/user/home']);
       return;
@@ -49,7 +63,7 @@ export class ShowtimesComponent implements OnInit {
   }
 
   onDateSelected(date: Date): void {
-    this.selectedDate = date;
+    this.selectedDate.set(date);
     this.loadShowtimes();
   }
 
@@ -73,7 +87,7 @@ export class ShowtimesComponent implements OnInit {
   }
 
   getTheaterKeys(): string[] {
-    return Object.keys(this.groupedShowtimes);
+    return Object.keys(this.groupedShowtimes());
   }
 
   trackByShowId(_index: number, showtime: Showtime): string {
@@ -85,49 +99,36 @@ export class ShowtimesComponent implements OnInit {
   }
 
   private loadMovie(): void {
-    this.loadingMovie = true;
-    this.movieService.getMovieById(this.movieId).subscribe({
+    this.loadingMovie.set(true);
+    this.movieService.getMovieById(this.movieId()).subscribe({
       next: movie => {
-        this.movie = movie;
-        this.loadingMovie = false;
+        this.movie.set(movie);
+        this.loadingMovie.set(false);
       },
-      error: (err) => {
-        console.error('Error loading movie:', err);
+      error: () => {
         this.alertService.error('Unable to load movie details');
-        this.loadingMovie = false;
+        this.loadingMovie.set(false);
         this.router.navigate(['/user/home']);
       }
     });
   }
 
   private loadShowtimes(): void {
-    this.loadingShowtimes = true;
-    const dateParam = this.formatDate(this.selectedDate);
+    this.loadingShowtimes.set(true);
+    const dateParam = this.formatDate(this.selectedDate());
 
-    this.showtimeService.getShowtimesByMovie(this.movieId, dateParam).subscribe({
+    this.showtimeService.getShowtimesByMovie(this.movieId(), dateParam).subscribe({
       next: showtimes => {
-        this.showtimes = showtimes.filter(s => s.status === 'ACTIVE');
-        this.groupShowtimesByTheater();
-        this.errorMessage = this.showtimes.length ? '' : 'No showtimes available for this date.';
-        this.loadingShowtimes = false;
+        const activeShowtimes = showtimes.filter(s => s.status === 'ACTIVE');
+        this.showtimes.set(activeShowtimes);
+        this.errorMessage.set(activeShowtimes.length ? '' : 'No showtimes available for this date.');
+        this.loadingShowtimes.set(false);
       },
-      error: (err) => {
-        console.error('Error loading showtimes:', err);
+      error: () => {
         this.alertService.error('Failed to load showtimes');
-        this.loadingShowtimes = false;
-        this.errorMessage = 'Unable to fetch showtimes right now. Please try again later.';
+        this.loadingShowtimes.set(false);
+        this.errorMessage.set('Unable to fetch showtimes right now. Please try again later.');
       }
-    });
-  }
-
-  private groupShowtimesByTheater(): void {
-    this.groupedShowtimes = {};
-    this.showtimes.forEach(showtime => {
-      const theaterName = this.getTheaterName(showtime);
-      if (!this.groupedShowtimes[theaterName]) {
-        this.groupedShowtimes[theaterName] = [];
-      }
-      this.groupedShowtimes[theaterName].push(showtime);
     });
   }
 

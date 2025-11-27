@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, signal, computed } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -20,14 +20,44 @@ type BookingCard = Booking & {
   providers: [DatePipe]
 })
 export class MyBookingsComponent implements OnInit {
-  bookings: BookingCard[] = [];
-  filteredBookings: BookingCard[] = [];
-  activeFilter: 'all' | 'upcoming' | 'past' | 'cancelled' = 'all';
-  searchTerm = '';
-  loading = true;
+  bookings = signal<BookingCard[]>([]);
+  activeFilter = signal<'all' | 'upcoming' | 'past' | 'cancelled'>('all');
+  searchTerm = signal('');
+  loading = signal(true);
+  selectedBooking = signal<BookingCard | null>(null);
+  showTicket = signal(false);
+  
+  filteredBookings = computed(() => {
+    let filtered = [...this.bookings()];
+    const now = new Date();
+    const filter = this.activeFilter();
+    const term = this.searchTerm().toLowerCase();
 
-  selectedBooking: BookingCard | null = null;
-  showTicket = false;
+    if (filter !== 'all') {
+      filtered = filtered.filter(booking => {
+        const showtime = new Date(booking.showtime);
+        switch (filter) {
+          case 'upcoming':
+            return showtime > now && booking.status === 'CONFIRMED';
+          case 'past':
+            return showtime <= now;
+          case 'cancelled':
+            return booking.status === 'CANCELLED';
+          default:
+            return true;
+        }
+      });
+    }
+
+    if (term) {
+      filtered = filtered.filter(booking =>
+        booking.movieTitle.toLowerCase().includes(term) ||
+        booking.theaterName.toLowerCase().includes(term)
+      );
+    }
+
+    return filtered;
+  });
 
   constructor(
     private alertService: AlertService,
@@ -43,12 +73,7 @@ export class MyBookingsComponent implements OnInit {
   }
 
   setFilter(filter: 'all' | 'upcoming' | 'past' | 'cancelled'): void {
-    this.activeFilter = filter;
-    this.filterBookings();
-  }
-
-  onSearch(): void {
-    this.filterBookings();
+    this.activeFilter.set(filter);
   }
 
   downloadTicket(_booking: BookingCard): void {
@@ -56,13 +81,13 @@ export class MyBookingsComponent implements OnInit {
   }
 
   viewTicket(booking: BookingCard): void {
-    this.selectedBooking = booking;
-    this.showTicket = true;
+    this.selectedBooking.set(booking);
+    this.showTicket.set(true);
   }
 
   closeTicket(): void {
-    this.showTicket = false;
-    this.selectedBooking = null;
+    this.showTicket.set(false);
+    this.selectedBooking.set(null);
   }
 
   viewDetails(_booking: BookingCard): void {
@@ -92,8 +117,7 @@ export class MyBookingsComponent implements OnInit {
     this.bookingService.cancelBooking(booking.id, reason).subscribe({
       next: updated => {
         const normalized = this.bookingService.normalizeBookingDates(updated);
-        this.bookings = this.bookings.map(b => (b.id === normalized.id ? normalized : b));
-        this.filterBookings();
+        this.bookings.update(bookings => bookings.map(b => (b.id === normalized.id ? normalized : b)));
         this.alertService.success('Booking cancelled. Refund (if applicable) will be processed shortly.');
       },
       error: () => this.alertService.error('Unable to cancel booking. Please try again.')
@@ -109,7 +133,7 @@ export class MyBookingsComponent implements OnInit {
   }
 
   getEmptyStateMessage(): string {
-    switch (this.activeFilter) {
+    switch (this.activeFilter()) {
       case 'upcoming':
         return 'No upcoming bookings found.';
       case 'past':
@@ -117,55 +141,23 @@ export class MyBookingsComponent implements OnInit {
       case 'cancelled':
         return 'No cancelled bookings found.';
       default:
-        return this.searchTerm
+        return this.searchTerm()
           ? 'No bookings match your search.'
           : 'No bookings yet. Start exploring movies!';
     }
   }
 
   private fetchBookings(): void {
-    this.loading = true;
+    this.loading.set(true);
     this.bookingService.getUserBookings().subscribe({
       next: bookings => {
-        this.bookings = bookings.map(b => this.bookingService.normalizeBookingDates(b));
-        this.loading = false;
-        this.filterBookings();
+        this.bookings.set(bookings.map(b => this.bookingService.normalizeBookingDates(b)));
+        this.loading.set(false);
       },
       error: () => {
-        this.loading = false;
+        this.loading.set(false);
         this.alertService.error('Unable to load bookings.');
       }
     });
-  }
-
-  private filterBookings(): void {
-    let filtered = [...this.bookings];
-    const now = new Date();
-
-    if (this.activeFilter !== 'all') {
-      filtered = filtered.filter(booking => {
-        const showtime = new Date(booking.showtime);
-        switch (this.activeFilter) {
-          case 'upcoming':
-            return showtime > now && booking.status === 'CONFIRMED';
-          case 'past':
-            return showtime <= now;
-          case 'cancelled':
-            return booking.status === 'CANCELLED';
-          default:
-            return true;
-        }
-      });
-    }
-
-    if (this.searchTerm) {
-      const term = this.searchTerm.toLowerCase();
-      filtered = filtered.filter(booking =>
-        booking.movieTitle.toLowerCase().includes(term) ||
-        booking.theaterName.toLowerCase().includes(term)
-      );
-    }
-
-    this.filteredBookings = filtered;
   }
 }

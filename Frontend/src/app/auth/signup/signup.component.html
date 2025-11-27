@@ -39,10 +39,16 @@
                 autocomplete="name"
                 [class.error]="signupForm.get('name')?.invalid && signupForm.get('name')?.touched"
                 aria-required="true">
-              <div class="error-message" *ngIf="signupForm.get('name')?.invalid && signupForm.get('name')?.touched" role="alert">
-                <span *ngIf="signupForm.get('name')?.hasError('required')">Name is required</span>
-                <span *ngIf="signupForm.get('name')?.hasError('minlength')">Name must be at least 2 characters</span>
-              </div>
+              @if (signupForm.get('name')?.invalid && signupForm.get('name')?.touched) {
+                <div class="error-message" role="alert">
+                  @if (signupForm.get('name')?.hasError('required')) {
+                    <span>Name is required</span>
+                  }
+                  @if (signupForm.get('name')?.hasError('minlength')) {
+                    <span>Name must be at least 2 characters</span>
+                  }
+                </div>
+              }
             </div>
 
             <div class="form-group">
@@ -56,10 +62,16 @@
                 autocomplete="email"
                 [class.error]="signupForm.get('email')?.invalid && signupForm.get('email')?.touched"
                 aria-required="true">
-              <div class="error-message" *ngIf="signupForm.get('email')?.invalid && signupForm.get('email')?.touched" role="alert">
-                <span *ngIf="signupForm.get('email')?.hasError('required')">Email is required</span>
-                <span *ngIf="signupForm.get('email')?.hasError('email')">Please enter a valid email</span>
-              </div>
+              @if (signupForm.get('email')?.invalid && signupForm.get('email')?.touched) {
+                <div class="error-message" role="alert">
+                  @if (signupForm.get('email')?.hasError('required')) {
+                    <span>Email is required</span>
+                  }
+                  @if (signupForm.get('email')?.hasError('email')) {
+                    <span>Please enter a valid email</span>
+                  }
+                </div>
+              }
             </div>
           </div>
 
@@ -68,7 +80,7 @@
               <label for="password">Password *</label>
               <div class="password-wrapper">
                 <input 
-                  [type]="showPassword ? 'text' : 'password'" 
+                  [type]="showPassword() ? 'text' : 'password'" 
                   id="password" 
                   name="password"
                   formControlName="password"
@@ -80,22 +92,31 @@
                   type="button" 
                   class="toggle-password" 
                   (click)="togglePasswordVisibility()"
-                  [attr.aria-label]="showPassword ? 'Hide password' : 'Show password'">
-                  <span *ngIf="!showPassword">👁️</span>
-                  <span *ngIf="showPassword">🙈</span>
+                  [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'">
+                  @if (!showPassword()) {
+                    <span>👁️</span>
+                  } @else {
+                    <span>🙈</span>
+                  }
                 </button>
               </div>
-              <div class="error-message" *ngIf="signupForm.get('password')?.invalid && signupForm.get('password')?.touched" role="alert">
-                <span *ngIf="signupForm.get('password')?.hasError('required')">Password is required</span>
-                <span *ngIf="signupForm.get('password')?.hasError('minlength')">Password must be at least 6 characters</span>
-              </div>
+              @if (signupForm.get('password')?.invalid && signupForm.get('password')?.touched) {
+                <div class="error-message" role="alert">
+                  @if (signupForm.get('password')?.hasError('required')) {
+                    <span>Password is required</span>
+                  }
+                  @if (signupForm.get('password')?.hasError('minlength')) {
+                    <span>Password must be at least 6 characters</span>
+                  }
+                </div>
+              }
             </div>
 
             <div class="form-group">
               <label for="confirmPassword">Confirm Password *</label>
               <div class="password-wrapper">
                 <input 
-                  [type]="showConfirmPassword ? 'text' : 'password'" 
+                  [type]="showConfirmPassword() ? 'text' : 'password'" 
                   id="confirmPassword" 
                   name="confirmPassword"
                   formControlName="confirmPassword"
@@ -107,15 +128,24 @@
                   type="button" 
                   class="toggle-password" 
                   (click)="toggleConfirmPasswordVisibility()"
-                  [attr.aria-label]="showConfirmPassword ? 'Hide password' : 'Show password'">
-                  <span *ngIf="!showConfirmPassword">👁️</span>
-                  <span *ngIf="showConfirmPassword">🙈</span>
+                  [attr.aria-label]="showConfirmPassword() ? 'Hide password' : 'Show password'">
+                  @if (!showConfirmPassword()) {
+                    <span>👁️</span>
+                  } @else {
+                    <span>🙈</span>
+                  }
                 </button>
               </div>
-              <div class="error-message" *ngIf="signupForm.get('confirmPassword')?.touched" role="alert">
-                <span *ngIf="signupForm.get('confirmPassword')?.hasError('required')">Please confirm your password</span>
-                <span *ngIf="signupForm.hasError('passwordMismatch') && !signupForm.get('confirmPassword')?.hasError('required')">Passwords do not match</span>
-              </div>
+              @if (signupForm.get('confirmPassword')?.touched) {
+                <div class="error-message" role="alert">
+                  @if (signupForm.get('confirmPassword')?.hasError('required')) {
+                    <span>Please confirm your password</span>
+                  }
+                  @if (signupForm.hasError('passwordMismatch') && !signupForm.get('confirmPassword')?.hasError('required')) {
+                    <span>Passwords do not match</span>
+                  }
+                </div>
+              }
             </div>
           </div>
 
@@ -130,9 +160,11 @@
                 placeholder="10-digit phone number"
                 autocomplete="tel"
                 [class.error]="signupForm.get('phone')?.invalid && signupForm.get('phone')?.touched">
-              <div class="error-message" *ngIf="signupForm.get('phone')?.invalid && signupForm.get('phone')?.touched" role="alert">
-                Please enter a valid 10-digit phone number
-              </div>
+              @if (signupForm.get('phone')?.invalid && signupForm.get('phone')?.touched) {
+                <div class="error-message" role="alert">
+                  Please enter a valid 10-digit phone number
+                </div>
+              }
             </div>
 
             <div class="form-group">
@@ -183,18 +215,23 @@
               rows="2"></textarea>
           </div>
 
-          <div class="error-message server-error" *ngIf="error" role="alert" aria-live="polite">
-            <span class="error-icon">⚠️</span>
-            {{ error }}
-          </div>
+          @if (error()) {
+            <div class="error-message server-error" role="alert" aria-live="polite">
+              <span class="error-icon">⚠️</span>
+              {{ error() }}
+            </div>
+          }
 
           <button 
             type="submit" 
             class="signup-btn" 
-            [disabled]="signupForm.invalid || loading"
-            [attr.aria-busy]="loading">
-            <span *ngIf="!loading">Create Account</span>
-            <span *ngIf="loading" class="loading-spinner">Creating Account...</span>
+            [disabled]="signupForm.invalid || loading()"
+            [attr.aria-busy]="loading()">
+            @if (!loading()) {
+              <span>Create Account</span>
+            } @else {
+              <span class="loading-spinner">Creating Account...</span>
+            }
           </button>
         </form>
 

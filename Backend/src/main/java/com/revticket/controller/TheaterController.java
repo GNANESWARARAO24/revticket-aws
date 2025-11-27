@@ -26,7 +26,7 @@ public class TheaterController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<TheaterResponse> getTheaterById(@PathVariable String id) {
+    public ResponseEntity<TheaterResponse> getTheaterById(@PathVariable("id") String id) {
         return theaterService.getTheaterById(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
@@ -40,21 +40,21 @@ public class TheaterController {
 
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<TheaterResponse> updateTheater(@PathVariable String id,
+    public ResponseEntity<TheaterResponse> updateTheater(@PathVariable("id") String id,
                                                          @Valid @RequestBody TheaterRequest request) {
         return ResponseEntity.ok(theaterService.updateTheater(id, request));
     }
 
     @PatchMapping("/{id}/status")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<TheaterResponse> updateTheaterStatus(@PathVariable String id,
-                                                               @RequestParam boolean active) {
+    public ResponseEntity<TheaterResponse> updateTheaterStatus(@PathVariable("id") String id,
+                                                               @RequestParam("active") boolean active) {
         return ResponseEntity.ok(theaterService.updateTheaterStatus(id, active));
     }
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Void> deleteTheater(@PathVariable String id) {
+    public ResponseEntity<Void> deleteTheater(@PathVariable("id") String id) {
         theaterService.deleteTheater(id);
         return ResponseEntity.ok().build();
     }

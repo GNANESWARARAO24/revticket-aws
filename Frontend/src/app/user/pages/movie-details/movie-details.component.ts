@@ -1,4 +1,4 @@
-import { Component, OnInit, Inject } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import { MovieService } from '../../../core/services/movie.service';
@@ -12,25 +12,24 @@ import { Movie } from '../../../core/models/movie.model';
   styleUrls: ['./movie-details.component.css']
 })
 export class MovieDetailsComponent implements OnInit {
-  movie: Movie | null = null;
-
-  constructor(
-    @Inject(ActivatedRoute) private route: ActivatedRoute,
-    private movieService: MovieService
-  ) {}
+  private route = inject(ActivatedRoute);
+  private movieService = inject(MovieService);
+  
+  movie = signal<Movie | null>(null);
 
   ngOnInit(): void {
     const movieId = this.route.snapshot.paramMap.get('id');
     if (movieId) {
       this.movieService.getMovieById(movieId).subscribe(movie => {
-        this.movie = movie;
+        this.movie.set(movie);
       });
     }
   }
 
   onImageError(event: any): void {
-    if (this.movie) {
-      event.target.src = 'https://via.placeholder.com/300x450/667eea/ffffff?text=' + encodeURIComponent(this.movie.title);
+    const currentMovie = this.movie();
+    if (currentMovie) {
+      event.target.src = 'https://via.placeholder.com/300x450/667eea/ffffff?text=' + encodeURIComponent(currentMovie.title);
     }
   }
 }

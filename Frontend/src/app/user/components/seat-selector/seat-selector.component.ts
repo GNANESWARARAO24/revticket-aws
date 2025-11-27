@@ -429,8 +429,7 @@ export class SeatSelectorComponent implements OnInit, OnDestroy {
         this.emitSelection();
         this.isProcessingSeat = false;
       },
-      error: (err) => {
-        console.error('Seat toggle error:', err);
+      error: () => {
         this.alertService.error('Unable to select seat. Please try again.');
         this.isProcessingSeat = false;
         this.loadSeatLayout();

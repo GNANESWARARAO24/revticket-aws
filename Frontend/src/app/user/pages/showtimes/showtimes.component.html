@@ -1,29 +1,29 @@
 <div class="showtimes-container">
   <!-- Movie Header -->
   <div class="page-header">
-    <div class="header-content" *ngIf="!loadingMovie && movie">
+    <div class="header-content" *ngIf="!loadingMovie() && movie()">
       <h1 class="page-title">Select Showtime</h1>
       <div class="movie-info">
         <div class="movie-poster">
-          <img [src]="movie.posterUrl || 'assets/images/movies/default-poster.png'" 
-               [alt]="movie.title" 
+          <img [src]="movie()!.posterUrl || 'assets/images/movies/default-poster.png'" 
+               [alt]="movie()!.title" 
                class="poster-img">
         </div>
         <div class="movie-details">
-          <h2 class="movie-title">{{ movie.title }}</h2>
+          <h2 class="movie-title">{{ movie()!.title }}</h2>
           <div class="movie-meta">
-            <span class="rating">⭐ {{ movie.rating || 'N/A' }}/10</span>
-            <span class="duration">🕐 {{ movie.duration }} min</span>
-            <span class="language">🌍 {{ movie.language }}</span>
+            <span class="rating">⭐ {{ movie()!.rating || 'N/A' }}/10</span>
+            <span class="duration">🕐 {{ movie()!.duration }} min</span>
+            <span class="language">🌍 {{ movie()!.language }}</span>
           </div>
-          <div class="genre-tags" *ngIf="movie.genre && movie.genre.length > 0">
-            <span class="genre-tag" *ngFor="let genre of movie.genre.slice(0, 4)">{{ genre }}</span>
+          <div class="genre-tags" *ngIf="movie()!.genre && movie()!.genre.length > 0">
+            <span class="genre-tag" *ngFor="let genre of movie()!.genre.slice(0, 4)">{{ genre }}</span>
           </div>
         </div>
       </div>
     </div>
     
-    <div class="loading-header" *ngIf="loadingMovie">
+    <div class="loading-header" *ngIf="loadingMovie()">
       <app-loader [message]="'Loading movie details...'"></app-loader>
     </div>
   </div>
@@ -38,17 +38,17 @@
     </div>
 
     <!-- Loading State -->
-    <div class="loading-state" *ngIf="loadingShowtimes">
+    <div class="loading-state" *ngIf="loadingShowtimes()">
       <app-loader [message]="'Fetching showtimes...'"></app-loader>
     </div>
 
     <!-- Showtimes Grid -->
-    <div class="showtimes-list" *ngIf="!loadingShowtimes && showtimes.length > 0">
+    <div class="showtimes-list" *ngIf="!loadingShowtimes() && showtimes().length > 0">
       <div class="theater-group" *ngFor="let theaterName of getTheaterKeys(); trackBy: trackByTheater">
         <h4 class="theater-group-title">{{ theaterName }}</h4>
         <div class="showtimes-grid">
           <div class="showtime-card" 
-               *ngFor="let showtime of groupedShowtimes[theaterName]; trackBy: trackByShowId" 
+               *ngFor="let showtime of groupedShowtimes()[theaterName]; trackBy: trackByShowId" 
                (click)="selectShowtime(showtime)">
             <div class="card-header">
               <div class="theater-info">
@@ -97,10 +97,10 @@
     </div>
 
     <!-- Empty State -->
-    <div class="empty-state" *ngIf="!loadingShowtimes && showtimes.length === 0">
+    <div class="empty-state" *ngIf="!loadingShowtimes() && showtimes().length === 0">
       <div class="empty-icon">🎬</div>
       <h3>No Shows Available</h3>
-      <p>{{ errorMessage }}</p>
+      <p>{{ errorMessage() }}</p>
       <p class="empty-hint">Try selecting a different date or check back later.</p>
     </div>
   </div>

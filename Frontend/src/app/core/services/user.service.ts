@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, timeout, catchError, throwError } from 'rxjs';
 import { User } from '../models/user.model';
 import { environment } from '../../../environments/environment';
 
@@ -16,7 +16,16 @@ export class UserService {
   constructor(private http: HttpClient) {}
 
   getUserProfile(): Observable<User> {
-    return this.http.get<User>(`${environment.apiUrl}/users/profile`);
+    return this.http.get<User>(`${environment.apiUrl}/users/profile`).pipe(
+      timeout(5000),
+      catchError(err => {
+        console.error('getUserProfile error:', err);
+        if (err.name === 'TimeoutError') {
+          return throwError(() => new Error('Backend server is not responding. Please ensure the backend is running on http://localhost:8080'));
+        }
+        return throwError(() => err);
+      })
+    );
   }
 
   updateProfile(userData: Partial<User>): Observable<User> {

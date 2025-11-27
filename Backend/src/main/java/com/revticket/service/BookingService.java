@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -39,14 +40,16 @@ public class BookingService {
 
     @Transactional
     public BookingResponse createBooking(String userId, BookingRequest request) {
-        User user = userRepository.findById(userId)
+
+        User user = userRepository.findById(Objects.requireNonNullElse(userId, ""))
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        Showtime showtime = showtimeRepository.findById(request.getShowtimeId())
+        Showtime showtime = showtimeRepository.findById(Objects.requireNonNullElse(request.getShowtimeId(), ""))
                 .orElseThrow(() -> new RuntimeException("Showtime not found"));
 
         for (String seatId : request.getSeats()) {
-            Seat seat = seatRepository.findById(seatId)
+            String safeSeatId = Objects.requireNonNullElse(seatId, "");
+            Seat seat = seatRepository.findById(safeSeatId)
                     .orElseThrow(() -> new RuntimeException("Seat not found: " + seatId));
 
             if (seat.getIsBooked()) {
@@ -59,9 +62,9 @@ public class BookingService {
         booking.setShowtime(showtime);
         booking.setSeats(request.getSeats());
         booking.setTotalAmount(request.getTotalAmount());
-        booking.setCustomerName(request.getCustomerName());
-        booking.setCustomerEmail(request.getCustomerEmail());
-        booking.setCustomerPhone(request.getCustomerPhone());
+        booking.setCustomerName(Objects.requireNonNullElse(request.getCustomerName(), ""));
+        booking.setCustomerEmail(Objects.requireNonNullElse(request.getCustomerEmail(), ""));
+        booking.setCustomerPhone(Objects.requireNonNullElse(request.getCustomerPhone(), ""));
         booking.setStatus(Booking.BookingStatus.CONFIRMED);
         booking.setTicketNumber("TKT" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
         booking.setQrCode("QR_" + UUID.randomUUID().toString());
@@ -69,7 +72,8 @@ public class BookingService {
         booking = bookingRepository.save(booking);
 
         for (String seatId : request.getSeats()) {
-            Seat seat = seatRepository.findById(seatId).orElse(null);
+            String safeSeatId = Objects.requireNonNullElse(seatId, "");
+            Seat seat = seatRepository.findById(safeSeatId).orElse(null);
             if (seat != null) {
                 seat.setIsBooked(true);
                 seatRepository.save(seat);
@@ -84,26 +88,30 @@ public class BookingService {
 
     @Transactional(readOnly = true)
     public List<BookingResponse> getUserBookings(String userId) {
-        return bookingRepository.findByUserId(userId).stream()
+        return bookingRepository.findByUserId(Objects.requireNonNullElse(userId, ""))
+                .stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
     public Optional<BookingResponse> getBookingById(String id) {
-        return bookingRepository.findById(id).map(this::mapToResponse);
+        return bookingRepository.findById(Objects.requireNonNullElse(id, ""))
+                .map(this::mapToResponse);
     }
 
     @Transactional
     public BookingResponse cancelBooking(String id, String reason) {
-        Booking booking = bookingRepository.findById(id)
+
+        Booking booking = bookingRepository.findById(Objects.requireNonNullElse(id, ""))
                 .orElseThrow(() -> new RuntimeException("Booking not found"));
 
         booking.setStatus(Booking.BookingStatus.CANCELLED);
-        booking.setCancellationReason(reason);
+        booking.setCancellationReason(Objects.requireNonNullElse(reason, ""));
 
         for (String seatId : booking.getSeats()) {
-            Seat seat = seatRepository.findById(seatId).orElse(null);
+            String safeSeatId = Objects.requireNonNullElse(seatId, "");
+            Seat seat = seatRepository.findById(safeSeatId).orElse(null);
             if (seat != null) {
                 seat.setIsBooked(false);
                 seatRepository.save(seat);
@@ -122,7 +130,8 @@ public class BookingService {
 
     @Transactional(readOnly = true)
     public List<BookingResponse> getAllBookings() {
-        return bookingRepository.findAll().stream()
+        return bookingRepository.findAll()
+                .stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
@@ -132,37 +141,37 @@ public class BookingService {
     }
 
     private BookingResponse mapToResponse(Booking booking) {
+
         Showtime showtime = booking.getShowtime();
         Movie movie = showtime.getMovie();
         Theater theater = showtime.getTheater();
 
         return BookingResponse.builder()
-                .id(booking.getId())
-                .userId(booking.getUser().getId())
-                .movieId(movie != null ? movie.getId() : null)
-                .movieTitle(movie != null ? movie.getTitle() : null)
-                .moviePosterUrl(movie != null ? movie.getPosterUrl() : null)
-                .theaterId(theater != null ? theater.getId() : null)
-                .theaterName(theater != null ? theater.getName() : null)
-                .theaterLocation(theater != null ? theater.getLocation() : null)
-                .showtimeId(showtime.getId())
+                .id(Objects.requireNonNullElse(booking.getId(), ""))
+                .userId(Objects.requireNonNullElse(booking.getUser().getId(), ""))
+                .movieId(movie != null ? Objects.requireNonNullElse(movie.getId(), "") : "")
+                .movieTitle(movie != null ? Objects.requireNonNullElse(movie.getTitle(), "") : "")
+                .moviePosterUrl(movie != null ? Objects.requireNonNullElse(movie.getPosterUrl(), "") : "")
+                .theaterId(theater != null ? Objects.requireNonNullElse(theater.getId(), "") : "")
+                .theaterName(theater != null ? Objects.requireNonNullElse(theater.getName(), "") : "")
+                .theaterLocation(theater != null ? Objects.requireNonNullElse(theater.getLocation(), "") : "")
+                .showtimeId(Objects.requireNonNullElse(showtime.getId(), ""))
                 .showtime(showtime.getShowDateTime())
-                .screen(showtime.getScreen())
+                .screen(Objects.requireNonNullElse(showtime.getScreen(), ""))
                 .ticketPrice(showtime.getTicketPrice())
                 .seats(booking.getSeats())
                 .totalAmount(booking.getTotalAmount())
                 .bookingDate(booking.getBookingDate())
                 .status(booking.getStatus())
-                .customerName(booking.getCustomerName())
-                .customerEmail(booking.getCustomerEmail())
-                .customerPhone(booking.getCustomerPhone())
-                .paymentId(booking.getPaymentId())
-                .qrCode(booking.getQrCode())
-                .ticketNumber(booking.getTicketNumber())
+                .customerName(Objects.requireNonNullElse(booking.getCustomerName(), ""))
+                .customerEmail(Objects.requireNonNullElse(booking.getCustomerEmail(), ""))
+                .customerPhone(Objects.requireNonNullElse(booking.getCustomerPhone(), ""))
+                .paymentId(Objects.requireNonNullElse(booking.getPaymentId(), ""))
+                .qrCode(Objects.requireNonNullElse(booking.getQrCode(), ""))
+                .ticketNumber(Objects.requireNonNullElse(booking.getTicketNumber(), ""))
                 .refundAmount(booking.getRefundAmount())
                 .refundDate(booking.getRefundDate())
-                .cancellationReason(booking.getCancellationReason())
+                .cancellationReason(Objects.requireNonNullElse(booking.getCancellationReason(), ""))
                 .build();
     }
 }
-

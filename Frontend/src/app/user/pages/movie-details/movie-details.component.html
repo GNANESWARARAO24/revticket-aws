@@ -1,100 +1,104 @@
-<div class="movie-details-container" *ngIf="movie">
-  <div class="movie-hero">
-    <div class="hero-backdrop"></div>
-    <div class="hero-content">
-      <div class="movie-poster-section">
-        <div class="poster-container">
-          <img [src]="movie!.posterUrl" [alt]="movie!.title" class="movie-poster"
-               (error)="onImageError($event)">
-          <div class="poster-overlay">
-            <button class="play-trailer-btn">
-              <span class="play-icon">▶</span>
-              Watch Trailer
+@if (movie(); as movieData) {
+  <div class="movie-details-container">
+    <div class="movie-hero">
+      <div class="hero-backdrop"></div>
+      <div class="hero-content">
+        <div class="movie-poster-section">
+          <div class="poster-container">
+            <img [src]="movieData.posterUrl" [alt]="movieData.title" class="movie-poster"
+                 (error)="onImageError($event)">
+            <div class="poster-overlay">
+              <button class="play-trailer-btn">
+                <span class="play-icon">▶</span>
+                Watch Trailer
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        <div class="movie-info">
+          <div class="movie-badges">
+            <span class="quality-badge">HD</span>
+            <span class="rating-badge">
+              <span class="star">⭐</span>
+              {{ movieData.rating }}/10
+            </span>
+          </div>
+          
+          <h1 class="movie-title">{{ movieData.title }}</h1>
+          
+          <div class="movie-meta">
+            <span class="meta-item">
+              <span class="meta-icon">🕰️</span>
+              {{ movieData.duration }} min
+            </span>
+            <span class="meta-item">
+              <span class="meta-icon">🌍</span>
+              {{ movieData.language }}
+            </span>
+            <span class="meta-item">
+              <span class="meta-icon">📅</span>
+              {{ movieData.releaseDate | date:'yyyy' }}
+            </span>
+          </div>
+          
+          <div class="genre-tags">
+            @for (genre of movieData.genre; track genre) {
+              <span class="genre-tag">{{ genre }}</span>
+            }
+          </div>
+          
+          <p class="movie-description">{{ movieData.description }}</p>
+          
+          <div class="action-buttons">
+            <button class="btn-primary" [routerLink]="['/user/movie', movieData.id, 'showtimes']">
+              <span class="btn-icon">🎫</span>
+              Book Tickets
+            </button>
+            <button class="btn-secondary">
+              <span class="btn-icon">❤️</span>
+              Add to Wishlist
             </button>
           </div>
         </div>
       </div>
-      
-      <div class="movie-info">
-        <div class="movie-badges">
-          <span class="quality-badge">HD</span>
-          <span class="rating-badge">
-            <span class="star">⭐</span>
-            {{ movie!.rating }}/10
-          </span>
-        </div>
-        
-        <h1 class="movie-title">{{ movie!.title }}</h1>
-        
-        <div class="movie-meta">
-          <span class="meta-item">
-            <span class="meta-icon">🕰️</span>
-            {{ movie!.duration }} min
-          </span>
-          <span class="meta-item">
-            <span class="meta-icon">🌍</span>
-            {{ movie!.language }}
-          </span>
-          <span class="meta-item">
-            <span class="meta-icon">📅</span>
-            {{ movie!.releaseDate | date:'yyyy' }}
-          </span>
-        </div>
-        
-        <div class="genre-tags">
-          <span class="genre-tag" *ngFor="let genre of movie!.genre">{{ genre }}</span>
-        </div>
-        
-        <p class="movie-description">{{ movie!.description }}</p>
-        
-        <div class="action-buttons">
-          <button class="btn-primary" [routerLink]="['/user/movie', movie!.id, 'showtimes']">
-            <span class="btn-icon">🎫</span>
-            Book Tickets
-          </button>
-          <button class="btn-secondary">
-            <span class="btn-icon">❤️</span>
-            Add to Wishlist
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-  
-  <div class="movie-details-section">
-    <div class="details-tabs">
-      <button class="tab-btn active">Overview</button>
-      <button class="tab-btn">Cast & Crew</button>
-      <button class="tab-btn">Reviews</button>
-      <button class="tab-btn">Showtimes</button>
     </div>
     
-    <div class="tab-content">
-      <div class="overview-content">
-        <div class="content-grid">
-          <div class="story-section">
-            <h3>Storyline</h3>
-            <p>{{ movie!.description }}</p>
-          </div>
-          
-          <div class="movie-stats">
-            <h3>Movie Info</h3>
-            <div class="stats-grid">
-              <div class="stat-item">
-                <span class="stat-label">Duration</span>
-                <span class="stat-value">{{ movie!.duration }} minutes</span>
-              </div>
-              <div class="stat-item">
-                <span class="stat-label">Language</span>
-                <span class="stat-value">{{ movie!.language }}</span>
-              </div>
-              <div class="stat-item">
-                <span class="stat-label">Rating</span>
-                <span class="stat-value">{{ movie!.rating }}/10</span>
-              </div>
-              <div class="stat-item">
-                <span class="stat-label">Release Date</span>
-                <span class="stat-value">{{ movie!.releaseDate | date:'mediumDate' }}</span>
+    <div class="movie-details-section">
+      <div class="details-tabs">
+        <button class="tab-btn active">Overview</button>
+        <button class="tab-btn">Cast & Crew</button>
+        <button class="tab-btn">Reviews</button>
+        <button class="tab-btn">Showtimes</button>
+      </div>
+      
+      <div class="tab-content">
+        <div class="overview-content">
+          <div class="content-grid">
+            <div class="story-section">
+              <h3>Storyline</h3>
+              <p>{{ movieData.description }}</p>
+            </div>
+            
+            <div class="movie-stats">
+              <h3>Movie Info</h3>
+              <div class="stats-grid">
+                <div class="stat-item">
+                  <span class="stat-label">Duration</span>
+                  <span class="stat-value">{{ movieData.duration }} minutes</span>
+                </div>
+                <div class="stat-item">
+                  <span class="stat-label">Language</span>
+                  <span class="stat-value">{{ movieData.language }}</span>
+                </div>
+                <div class="stat-item">
+                  <span class="stat-label">Rating</span>
+                  <span class="stat-value">{{ movieData.rating }}/10</span>
+                </div>
+                <div class="stat-item">
+                  <span class="stat-label">Release Date</span>
+                  <span class="stat-value">{{ movieData.releaseDate | date:'mediumDate' }}</span>
+                </div>
               </div>
             </div>
           </div>
@@ -102,4 +106,4 @@
       </div>
     </div>
   </div>
-</div>
+}

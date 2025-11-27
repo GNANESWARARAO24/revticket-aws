@@ -18,12 +18,12 @@ public class SeatController {
     private SeatService seatService;
 
     @GetMapping("/showtime/{showtimeId}")
-    public ResponseEntity<List<Seat>> getSeatsByShowtime(@PathVariable String showtimeId) {
+    public ResponseEntity<List<Seat>> getSeatsByShowtime(@PathVariable("showtimeId") String showtimeId) {
         return ResponseEntity.ok(seatService.getSeatsByShowtime(showtimeId));
     }
 
     @PostMapping("/showtime/{showtimeId}/initialize")
-    public ResponseEntity<?> initializeSeats(@PathVariable String showtimeId) {
+    public ResponseEntity<?> initializeSeats(@PathVariable("showtimeId") String showtimeId) {
         seatService.initializeSeatsForShowtime(showtimeId);
         return ResponseEntity.ok().body("Seats initialized successfully");
     }

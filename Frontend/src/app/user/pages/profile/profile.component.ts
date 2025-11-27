@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { FormsModule } from '@angular/forms';
@@ -14,21 +14,26 @@ import { User } from '../../../core/models/user.model';
   styleUrls: ['./profile.component.css']
 })
 export class ProfileComponent implements OnInit {
-  user: User | null = null;
+  user = signal<User | null>(null);
   profileForm!: FormGroup;
   passwordForm!: FormGroup;
-  activeTab = 'personal';
-  loading = false;
-  loadingProfile = true;
+  activeTab = signal('personal');
+  loading = signal(false);
+  loadingProfile = signal(true);
 
   availableGenres = ['Action', 'Comedy', 'Drama', 'Horror', 'Romance', 'Sci-Fi', 'Thriller', 'Adventure', 'Animation', 'Documentary'];
   
-  preferences = {
+  preferences = signal<{
+    language: string;
+    emailNotifications: boolean;
+    smsNotifications: boolean;
+    pushNotifications: boolean;
+  }>({
     language: 'english',
     emailNotifications: true,
     smsNotifications: false,
     pushNotifications: true
-  };
+  });
 
   constructor(
     private fb: FormBuilder,
@@ -58,10 +63,10 @@ export class ProfileComponent implements OnInit {
   }
 
   loadUserData(): void {
-    this.loadingProfile = true;
+    this.loadingProfile.set(true);
     this.userService.getUserProfile().subscribe({
       next: (userData) => {
-        this.user = userData;
+        this.user.set(userData);
         this.profileForm.patchValue({
           name: userData.name,
           phone: userData.phone || '',
@@ -69,24 +74,24 @@ export class ProfileComponent implements OnInit {
           gender: userData.gender || '',
           address: userData.address || ''
         });
-        this.preferences = {
+        this.preferences.set({
           language: userData.preferredLanguage || 'english',
           emailNotifications: userData.emailNotifications !== false,
           smsNotifications: userData.smsNotifications === true,
           pushNotifications: userData.pushNotifications !== false
-        };
-        this.loadingProfile = false;
+        });
+        this.loadingProfile.set(false);
       },
       error: (err) => {
-        console.error('Failed to load profile:', err);
-        this.alertService.error('Failed to load profile data');
-        this.loadingProfile = false;
+        console.error('Profile load error:', err);
+        this.alertService.error('Failed to load profile data. Please check if backend is running.');
+        this.loadingProfile.set(false);
       }
     });
   }
 
   setActiveTab(tab: string): void {
-    this.activeTab = tab;
+    this.activeTab.set(tab);
   }
 
   onImageError(event: any): void {
@@ -103,7 +108,7 @@ export class ProfileComponent implements OnInit {
       return;
     }
 
-    this.loading = true;
+    this.loading.set(true);
     const profileData = {
       name: this.profileForm.get('name')?.value,
       phone: this.profileForm.get('phone')?.value || null,
@@ -114,36 +119,35 @@ export class ProfileComponent implements OnInit {
 
     this.userService.updateProfile(profileData).subscribe({
       next: (updatedUser) => {
-        this.user = updatedUser;
+        this.user.set(updatedUser);
         this.alertService.success('Profile updated successfully!');
-        this.loading = false;
+        this.loading.set(false);
       },
-      error: (err) => {
-        console.error('Failed to update profile:', err);
+      error: () => {
         this.alertService.error('Failed to update profile. Please try again.');
-        this.loading = false;
+        this.loading.set(false);
       }
     });
   }
 
   updatePreferences(): void {
-    this.loading = true;
+    this.loading.set(true);
+    const prefs = this.preferences();
     const preferencesData = {
-      preferredLanguage: this.preferences.language,
-      emailNotifications: this.preferences.emailNotifications,
-      smsNotifications: this.preferences.smsNotifications,
-      pushNotifications: this.preferences.pushNotifications
+      preferredLanguage: prefs.language,
+      emailNotifications: prefs.emailNotifications,
+      smsNotifications: prefs.smsNotifications,
+      pushNotifications: prefs.pushNotifications
     };
 
     this.userService.updateProfile(preferencesData).subscribe({
       next: () => {
         this.alertService.success('Preferences updated successfully!');
-        this.loading = false;
+        this.loading.set(false);
       },
-      error: (err) => {
-        console.error('Failed to update preferences:', err);
+      error: () => {
         this.alertService.error('Failed to update preferences');
-        this.loading = false;
+        this.loading.set(false);
       }
     });
   }
@@ -168,31 +172,46 @@ export class ProfileComponent implements OnInit {
       return;
     }
 
-    this.loading = true;
+    this.loading.set(true);
     this.userService.changePassword({ currentPassword, newPassword }).subscribe({
       next: () => {
         this.alertService.success('Password changed successfully!');
         this.passwordForm.reset();
-        this.loading = false;
+        this.loading.set(false);
       },
       error: (err) => {
-        console.error('Failed to change password:', err);
         const errorMsg = err.error?.message || err.error || 'Failed to change password';
         this.alertService.error(errorMsg);
-        this.loading = false;
+        this.loading.set(false);
       }
     });
   }
 
+  updateLanguage(language: string): void {
+    this.preferences.update(p => ({ ...p, language }));
+  }
+
+  updateEmailNotifications(value: boolean): void {
+    this.preferences.update(p => ({ ...p, emailNotifications: value }));
+  }
+
+  updateSmsNotifications(value: boolean): void {
+    this.preferences.update(p => ({ ...p, smsNotifications: value }));
+  }
+
+  updatePushNotifications(value: boolean): void {
+    this.preferences.update(p => ({ ...p, pushNotifications: value }));
+  }
+
   get displayName(): string {
-    return this.user?.name || 'User';
+    return this.user()?.name || 'User';
   }
 
   get displayEmail(): string {
-    return this.user?.email || '';
+    return this.user()?.email || '';
   }
 
   get memberSince(): Date {
-    return this.user?.createdAt || new Date();
+    return this.user()?.createdAt || new Date();
   }
 }

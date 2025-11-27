@@ -1,4 +1,4 @@
-import { Component, Input, Inject } from '@angular/core';
+import { Component, Input, inject, input } from '@angular/core';
 import { Router } from '@angular/router';
 import { Movie } from '../../../core/models/movie.model';
 import { CommonModule } from '@angular/common';
@@ -12,8 +12,7 @@ import { CommonModule } from '@angular/common';
 })
 export class MovieCardComponent {
   @Input() movie!: Movie;
-
-  constructor(@Inject(Router) private router: Router) {}
+  private router = inject(Router);
 
   onImageError(event: any): void {
     event.target.src = 'assets/images/movies/default-poster.png';

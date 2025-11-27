@@ -1,9 +1,7 @@
-import { Component, OnInit, Inject } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
-import { Observable } from 'rxjs';
 import { AuthService } from '../../../core/services/auth.service';
-import { User } from '../../../core/models/user.model';
 
 @Component({
   selector: 'app-navbar',
@@ -12,17 +10,11 @@ import { User } from '../../../core/models/user.model';
   templateUrl: './navbar.component.html',
   styleUrls: ['./navbar.component.css']
 })
-export class NavbarComponent implements OnInit {
-  currentUser$: Observable<User | null>;
-
-  constructor(
-    private authService: AuthService,
-    @Inject(Router) private router: Router
-  ) {
-    this.currentUser$ = this.authService.currentUser$;
-  }
-
-  ngOnInit(): void {}
+export class NavbarComponent {
+  private authService = inject(AuthService);
+  private router = inject(Router);
+  
+  currentUser = this.authService.currentUser;
 
   logout(): void {
     this.authService.logout();

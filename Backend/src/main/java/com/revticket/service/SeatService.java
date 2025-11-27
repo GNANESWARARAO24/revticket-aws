@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 @Service
 public class SeatService {
@@ -55,7 +56,7 @@ public class SeatService {
             return;
         }
 
-        Showtime showtime = showtimeRepository.findById(showtimeId)
+        Showtime showtime = showtimeRepository.findById(Objects.requireNonNullElse(showtimeId, ""))
                 .orElseThrow(() -> new RuntimeException("Showtime not found"));
 
         String[] rows = { "A", "B", "C", "D", "E", "F", "G", "H" };
@@ -97,7 +98,7 @@ public class SeatService {
             return;
         }
 
-        Showtime showtime = showtimeRepository.findById(showtimeId)
+        Showtime showtime = showtimeRepository.findById(Objects.requireNonNullElse(showtimeId, ""))
                 .orElseThrow(() -> new RuntimeException("Showtime not found"));
 
         List<Seat> seatsToSave = new ArrayList<>();
@@ -131,7 +132,8 @@ public class SeatService {
     @Transactional
     public void holdSeats(String showtimeId, List<String> seatIds, String sessionId) {
         for (String seatId : seatIds) {
-            Seat seat = seatRepository.findById(seatId)
+            String safeSeatId = Objects.requireNonNullElse(seatId, "");
+            Seat seat = seatRepository.findById(safeSeatId)
                     .orElseThrow(() -> new RuntimeException("Seat not found: " + seatId));
 
             if (seat.getIsBooked()) {
@@ -148,7 +150,8 @@ public class SeatService {
     @Transactional
     public void releaseSeats(String showtimeId, List<String> seatIds) {
         for (String seatId : seatIds) {
-            Seat seat = seatRepository.findById(seatId).orElse(null);
+            String safeSeatId = Objects.requireNonNullElse(seatId, "");
+            Seat seat = seatRepository.findById(safeSeatId).orElse(null);
             if (seat != null && !seat.getIsBooked()) {
                 seat.setIsHeld(false);
                 seat.setHoldExpiry(null);

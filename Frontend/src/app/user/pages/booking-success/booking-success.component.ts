@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, ActivatedRoute, Router } from '@angular/router';
 import { AlertService } from '../../../core/services/alert.service';
@@ -28,9 +28,9 @@ interface BookingViewModel {
   styleUrls: ['./booking-success.component.css']
 })
 export class BookingSuccessComponent implements OnInit {
-  bookingId!: string;
-  booking: BookingViewModel | null = null;
-  loading = true;
+  bookingId = signal('');
+  booking = signal<BookingViewModel | null>(null);
+  loading = signal(true);
 
   constructor(
     private route: ActivatedRoute,
@@ -40,16 +40,17 @@ export class BookingSuccessComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    this.bookingId = this.route.snapshot.paramMap.get('bookingId') || '';
-    if (!this.bookingId) {
+    const id = this.route.snapshot.paramMap.get('bookingId') || '';
+    this.bookingId.set(id);
+    if (!id) {
       this.router.navigate(['/user/home']);
       return;
     }
 
     const confirmation = this.bookingService.getLastConfirmedBooking();
-    if (confirmation && confirmation.bookingId === this.bookingId) {
-      this.booking = this.buildViewModelFromConfirmation(confirmation);
-      this.loading = false;
+    if (confirmation && confirmation.bookingId === id) {
+      this.booking.set(this.buildViewModelFromConfirmation(confirmation));
+      this.loading.set(false);
     } else {
       this.fetchBooking();
     }
@@ -64,10 +65,10 @@ export class BookingSuccessComponent implements OnInit {
   }
 
   private fetchBooking(): void {
-    this.bookingService.getBookingById(this.bookingId).subscribe({
+    this.bookingService.getBookingById(this.bookingId()).subscribe({
       next: booking => {
-        this.booking = this.buildViewModelFromBooking(booking);
-        this.loading = false;
+        this.booking.set(this.buildViewModelFromBooking(booking));
+        this.loading.set(false);
       },
       error: () => {
         this.alertService.error('Unable to find booking details.');

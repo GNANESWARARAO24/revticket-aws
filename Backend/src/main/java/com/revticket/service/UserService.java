@@ -9,6 +9,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
@@ -21,13 +22,13 @@ public class UserService {
     private PasswordEncoder passwordEncoder;
 
     public UserDto getUserProfile(String userId) {
-        User user = userRepository.findById(userId)
+        User user = userRepository.findById(Objects.requireNonNullElse(userId, ""))
                 .orElseThrow(() -> new RuntimeException("User not found"));
         return convertToDto(user);
     }
 
     public UserDto updateProfile(String userId, UserDto userDto) {
-        User user = userRepository.findById(userId)
+        User user = userRepository.findById(Objects.requireNonNullElse(userId, ""))
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         user.setName(userDto.getName());
@@ -51,7 +52,7 @@ public class UserService {
     }
 
     public void changePassword(String userId, PasswordChangeRequest request) {
-        User user = userRepository.findById(userId)
+        User user = userRepository.findById(Objects.requireNonNullElse(userId, ""))
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
@@ -62,17 +63,24 @@ public class UserService {
         userRepository.save(user);
     }
 
+    /**
+     * Helper method to safely return non-null Strings.
+     */
+    private String safe(String value) {
+        return value != null ? value : "";
+    }
+
     private UserDto convertToDto(User user) {
         return new UserDto(
-                user.getId(),
-                user.getEmail(),
-                user.getName(),
-                user.getRole().name(),
-                user.getPhone(),
+                safe(user.getId()),
+                safe(user.getEmail()),
+                safe(user.getName()),
+                safe(user.getRole() != null ? user.getRole().name() : ""),
+                safe(user.getPhone()),
                 user.getDateOfBirth(),
-                user.getGender(),
-                user.getAddress(),
-                user.getPreferredLanguage(),
+                safe(user.getGender()),
+                safe(user.getAddress()),
+                safe(user.getPreferredLanguage()),
                 user.getEmailNotifications(),
                 user.getSmsNotifications(),
                 user.getPushNotifications(),

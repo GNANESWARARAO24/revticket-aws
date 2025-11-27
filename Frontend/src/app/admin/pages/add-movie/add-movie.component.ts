@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router, RouterModule, ActivatedRoute } from '@angular/router';
@@ -15,10 +15,10 @@ import { Movie } from '../../../core/models/movie.model';
 })
 export class AddMovieComponent implements OnInit {
   movieForm: FormGroup;
-  isEditMode = false;
-  editingMovieId: string | null = null;
-  loading = false;
-  submitting = false;
+  isEditMode = signal(false);
+  editingMovieId = signal<string | null>(null);
+  loading = signal(false);
+  submitting = signal(false);
 
   genreOptions = ['Action', 'Adventure', 'Comedy', 'Drama', 'Horror', 'Romance', 'Sci-Fi', 'Thriller', 'Fantasy', 'Animation'];
 
@@ -45,18 +45,19 @@ export class AddMovieComponent implements OnInit {
   ngOnInit(): void {
     this.route.queryParams.subscribe(params => {
       if (params['edit']) {
-        this.isEditMode = true;
-        this.editingMovieId = params['edit'];
+        this.isEditMode.set(true);
+        this.editingMovieId.set(params['edit']);
         this.loadMovieForEdit();
       }
     });
   }
 
   loadMovieForEdit(): void {
-    if (!this.editingMovieId) return;
+    const movieId = this.editingMovieId();
+    if (!movieId) return;
 
-    this.loading = true;
-    this.movieService.getMovieById(this.editingMovieId).subscribe({
+    this.loading.set(true);
+    this.movieService.getMovieById(movieId).subscribe({
       next: (movie) => {
         this.movieForm.patchValue({
           title: movie.title,
@@ -69,12 +70,11 @@ export class AddMovieComponent implements OnInit {
           posterUrl: movie.posterUrl || '',
           trailerUrl: movie.trailerUrl || ''
         });
-        this.loading = false;
+        this.loading.set(false);
       },
-      error: (err) => {
-        console.error('Error loading movie:', err);
+      error: () => {
         this.alertService.error('Failed to load movie details');
-        this.loading = false;
+        this.loading.set(false);
         this.router.navigate(['/admin/manage-movies']);
       }
     });
@@ -82,7 +82,7 @@ export class AddMovieComponent implements OnInit {
 
   onSubmit(): void {
     if (this.movieForm.valid) {
-      this.submitting = true;
+      this.submitting.set(true);
       const formValue = this.movieForm.value;
       
       // Convert genre string to array
@@ -103,30 +103,29 @@ export class AddMovieComponent implements OnInit {
         isActive: true
       };
 
-      if (this.isEditMode && this.editingMovieId) {
-        this.movieService.updateMovie(this.editingMovieId, movieData).subscribe({
+      const movieId = this.editingMovieId();
+      if (this.isEditMode() && movieId) {
+        this.movieService.updateMovie(movieId, movieData).subscribe({
           next: () => {
             this.alertService.success('Movie updated successfully!');
-            this.submitting = false;
+            this.submitting.set(false);
             this.router.navigate(['/admin/manage-movies']);
           },
-          error: (err) => {
-            console.error('Error updating movie:', err);
+          error: () => {
             this.alertService.error('Failed to update movie');
-            this.submitting = false;
+            this.submitting.set(false);
           }
         });
       } else {
         this.movieService.addMovie(movieData).subscribe({
           next: () => {
             this.alertService.success('Movie added successfully!');
-            this.submitting = false;
+            this.submitting.set(false);
             this.router.navigate(['/admin/manage-movies']);
           },
-          error: (err) => {
-            console.error('Error adding movie:', err);
+          error: () => {
             this.alertService.error('Failed to add movie');
-            this.submitting = false;
+            this.submitting.set(false);
           }
         });
       }
@@ -144,11 +143,11 @@ export class AddMovieComponent implements OnInit {
   }
 
   getPageTitle(): string {
-    return this.isEditMode ? 'Edit Movie' : 'Add New Movie';
+    return this.isEditMode() ? 'Edit Movie' : 'Add New Movie';
   }
 
   getSubmitButtonText(): string {
-    return this.isEditMode ? 'Update Movie' : 'Add Movie';
+    return this.isEditMode() ? 'Update Movie' : 'Add Movie';
   }
 
   getFieldError(fieldName: string): string {

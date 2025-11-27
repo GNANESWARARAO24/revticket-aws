@@ -12,35 +12,35 @@
 
   <div class="filters-section">
     <div class="search-box">
-      <input type="text" placeholder="Search shows..." [(ngModel)]="searchTerm" (input)="onSearch()">
+      <input type="text" placeholder="Search shows..." [(ngModel)]="searchTerm">
       <span class="search-icon">🔍</span>
     </div>
 
     <div class="filter-controls">
       <!-- Movie Filter -->
-      <select [(ngModel)]="selectedMovieId" (change)="onFilterChange()">
+      <select [(ngModel)]="selectedMovieId">
         <option value="">All Movies</option>
-        <option *ngFor="let movie of movies" [value]="movie.id">
+        <option *ngFor="let movie of movies()" [value]="movie.id">
           {{ movie.title }}
         </option>
       </select>
 
       <!-- Theater Filter -->
-      <select [(ngModel)]="selectedTheaterId" (change)="onFilterChange()">
+      <select [(ngModel)]="selectedTheaterId">
         <option value="">All Theaters</option>
-        <option *ngFor="let theater of theaters" [value]="theater.id">
+        <option *ngFor="let theater of theaters()" [value]="theater.id">
           {{ theater.name }}
         </option>
       </select>
 
       <!-- Date Filter -->
-      <input type="date" [(ngModel)]="selectedDate" (change)="onFilterChange()" class="date-filter">
+      <input type="date" [(ngModel)]="selectedDate" class="date-filter">
     </div>
 
     <!-- Add Show Form -->
-    <div class="add-show-form" *ngIf="showAddForm">
+    <div class="add-show-form" *ngIf="showAddForm()">
       <div class="form-header">
-        <h2>{{ isEditMode ? 'Edit Show' : 'Add New Show' }}</h2>
+        <h2>{{ isEditMode() ? 'Edit Show' : 'Add New Show' }}</h2>
         <button class="close-btn" (click)="cancelAdd()">×</button>
       </div>
 
@@ -50,14 +50,14 @@
             <label>Movie *</label>
             <select [(ngModel)]="newShow.movieId" name="movieId" required>
               <option value="">Select Movie</option>
-              <option *ngFor="let movie of movies" [value]="movie.id">{{ movie.title }}</option>
+              <option *ngFor="let movie of movies()" [value]="movie.id">{{ movie.title }}</option>
             </select>
           </div>
           <div class="form-group">
             <label>Theater *</label>
             <select [(ngModel)]="newShow.theaterId" name="theaterId" required>
               <option value="">Select Theater</option>
-              <option *ngFor="let theater of theaters" [value]="theater.id">{{ theater.name }}</option>
+              <option *ngFor="let theater of theaters()" [value]="theater.id">{{ theater.name }}</option>
             </select>
           </div>
         </div>
@@ -171,21 +171,21 @@
         </div>
 
         <div class="form-actions">
-          <button type="button" class="btn-secondary" (click)="cancelAdd()" [disabled]="submitting">Cancel</button>
-          <button type="submit" class="btn-primary" [disabled]="submitting">
-            {{ submitting ? (isEditMode ? 'Updating...' : 'Saving...') : (isEditMode ? 'Update Show' : 'Save Show') }}
+          <button type="button" class="btn-secondary" (click)="cancelAdd()" [disabled]="submitting()">Cancel</button>
+          <button type="submit" class="btn-primary" [disabled]="submitting()">
+            {{ submitting() ? (isEditMode() ? 'Updating...' : 'Saving...') : (isEditMode() ? 'Update Show' : 'Save Show') }}
           </button>
         </div>
       </form>
     </div>
 
-    <div class="loading-state" *ngIf="loading">
+    <div class="loading-state" *ngIf="loading()">
       <div class="spinner"></div>
       <p>Loading shows...</p>
     </div>
 
-    <div class="shows-grid" *ngIf="!loading && filteredShows.length > 0 && !showAddForm">
-      <div class="show-card" *ngFor="let show of filteredShows; trackBy: trackByShowId">
+    <div class="shows-grid" *ngIf="!loading() && filteredShows().length > 0 && !showAddForm()">
+      <div class="show-card" *ngFor="let show of filteredShows(); trackBy: trackByShowId">
         <div class="show-header">
           <div class="movie-info">
             <img [src]="show.movie?.posterUrl" [alt]="show.movie?.title" class="movie-poster"
@@ -250,7 +250,7 @@
           </button>
             <button class="btn-danger" (click)="deleteShow(show)" 
                     *ngIf="show.status !== 'COMPLETED'"
-                    [disabled]="deleteInProgressId === show.id">
+                    [disabled]="deleteInProgressId() === show.id">
             <span class="icon">🗑️</span>
             Delete
           </button>
@@ -258,7 +258,7 @@
       </div>
     </div>
 
-    <div class="empty-state" *ngIf="!loading && filteredShows.length === 0 && !showAddForm">
+    <div class="empty-state" *ngIf="!loading() && filteredShows().length === 0 && !showAddForm()">
       <div class="empty-icon">🎬</div>
       <h3>No Shows Found</h3>
       <p>{{ getEmptyStateMessage() }}</p>

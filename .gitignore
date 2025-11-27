@@ -1,101 +1,52 @@
-############################
-# Node / Angular
-############################
-
-# compiled output
-dist/
-tmp/
-out-tsc/
-
-# dependencies
-node_modules/
-
-# IDE files
-.idea/
-.project
-.classpath
-.c9/
-*.launch
-.settings/
-.vscode/
-
-# Angular cache
-.angular/
-.npm/
-
-# logs
-npm-debug.log
-yarn-debug.log
-yarn-error.log
-pnpm-debug.log
-
-# environment files
-src/environments/environment*.ts
-!src/environments/environment.example.ts
-
-
-############################
-# Spring Boot / Java
-############################
-
-# Maven
-target/
-!.mvn/wrapper/maven-wrapper.jar
-.mvn/timing.properties
-
-# Gradle
-.gradle/
-build/
-!gradle/wrapper/gradle-wrapper.jar
-
-# Java
+# ==========================
+# Java / Spring Boot
+# ==========================
+# Compiled class files
 *.class
-*.jar
-*.war
-*.ear
 
-# Logs
-logs/
+# Maven / Gradle build
+target/
+build/
+
+# Log files
 *.log
 
-# OS-specific
+# Package Files
+*.jar
+*.war
+*.nar
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+# ==========================
+# IDE Files
+# ==========================
+# IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+
+# VS Code
+.vscode/
+
+# Eclipse / STS
+.settings/
+.classpath
+.project
+.sts4-cache
+
+# ==========================
+# OS Files
+# ==========================
 .DS_Store
 Thumbs.db
 
-# Spring Boot config
-application.properties
-application.yml
-application-*.yml
-application-*.properties
-
-############################
-# MySQL
-############################
-
-# local DB dumps
-*.sql
-*.sql.gz
-*.db
-*.dump
-
-############################
-# Other files
-############################
-
-# Temporary files
-*.tmp
-*.temp
-*.swp
-*.swo
-
-# Backup files
-*.bak
-*.old
-
-# IntelliJ / Eclipse
-*.iml
-/.idea
-/.classpath
-/.project
-/target/
-bin/
+# ==========================
+# Angular
+# ==========================
+/node_modules/
+/dist/
+/.angular/
+/coverage/

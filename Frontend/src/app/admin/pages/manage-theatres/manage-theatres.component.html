@@ -4,9 +4,9 @@
     <button class="btn-primary" (click)="addTheatre()">Add Theatre</button>
   </div>
 
-  <div class="theatre-form" *ngIf="showForm">
+  <div class="theatre-form" *ngIf="showForm()">
     <div class="form-header">
-      <h3>{{ editingTheatreId ? 'Edit Theatre' : 'Add New Theatre' }}</h3>
+      <h3>{{ editingTheatreId() ? 'Edit Theatre' : 'Add New Theatre' }}</h3>
       <button type="button" class="close-btn" (click)="cancelForm()">×</button>
     </div>
     <form [formGroup]="theatreForm" (ngSubmit)="submitTheatre()">
@@ -50,21 +50,21 @@
       </div>
 
       <div class="form-actions">
-        <button type="button" class="btn-secondary" (click)="cancelForm()" [disabled]="submitting">Cancel</button>
-        <button type="submit" class="btn-primary" [disabled]="theatreForm.invalid || submitting">
-          {{ submitting ? 'Saving...' : (editingTheatreId ? 'Update Theatre' : 'Add Theatre') }}
+        <button type="button" class="btn-secondary" (click)="cancelForm()" [disabled]="submitting()">Cancel</button>
+        <button type="submit" class="btn-primary" [disabled]="theatreForm.invalid || submitting()">
+          {{ submitting() ? 'Saving...' : (editingTheatreId() ? 'Update Theatre' : 'Add Theatre') }}
         </button>
       </div>
     </form>
   </div>
 
-  <div class="loading-state" *ngIf="loading">
+  <div class="loading-state" *ngIf="loading()">
     <div class="spinner"></div>
     <p>Loading theaters...</p>
   </div>
 
-  <div class="theatres-list" *ngIf="!loading && theatres.length">
-    <div class="theatre-card" *ngFor="let theatre of theatres; trackBy: trackByTheatreId">
+  <div class="theatres-list" *ngIf="!loading() && theatres().length">
+    <div class="theatre-card" *ngFor="let theatre of theatres(); trackBy: trackByTheatreId">
       <div class="theatre-image">
         <img [src]="theatre.imageUrl || 'assets/images/theaters/PVR.png'" [alt]="theatre.name" class="theatre-img"
              (error)="onImageError($event, theatre)">
@@ -80,17 +80,17 @@
           {{ theatre.isActive ? 'Active' : 'Inactive' }}
         </span>
         <button class="btn-edit" (click)="editTheatre(theatre)">Edit</button>
-        <button class="btn-toggle" (click)="toggleStatus(theatre)" [disabled]="statusUpdatingId === theatre.id">
+        <button class="btn-toggle" (click)="toggleStatus(theatre)" [disabled]="statusUpdatingId() === theatre.id">
           {{ theatre.isActive ? 'Deactivate' : 'Activate' }}
         </button>
-        <button class="btn-danger" (click)="deleteTheatre(theatre)" [disabled]="deletingId === theatre.id">
+        <button class="btn-danger" (click)="deleteTheatre(theatre)" [disabled]="deletingId() === theatre.id">
           Delete
         </button>
       </div>
     </div>
   </div>
 
-  <div class="empty-state" *ngIf="!loading && !theatres.length">
+  <div class="empty-state" *ngIf="!loading() && !theatres().length">
     <div class="empty-icon">🎭</div>
     <h3>No theaters yet</h3>
     <p>Add your first theater to start scheduling showtimes.</p>

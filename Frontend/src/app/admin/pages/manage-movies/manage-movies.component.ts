@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -16,22 +16,40 @@ import { Movie } from '../../../core/models/movie.model';
   styleUrls: ['./manage-movies.component.css']
 })
 export class ManageMoviesComponent implements OnInit {
-  movies: Movie[] = [];
-  filteredMovies: Movie[] = [];
-  searchTerm = '';
-  selectedGenre = '';
-  selectedRating = '';
-  loading = false;
-  deletingId: string | null = null;
+  movies = signal<Movie[]>([]);
+  searchTerm = signal('');
+  selectedGenre = signal('');
+  selectedRating = signal('');
+  loading = signal(false);
+  deletingId = signal<string | null>(null);
+  
+  filteredMovies = computed(() => {
+    const search = this.searchTerm().toLowerCase();
+    const genre = this.selectedGenre();
+    const rating = this.selectedRating();
+    
+    return this.movies().filter(movie => {
+      const matchesSearch = !search || 
+        movie.title.toLowerCase().includes(search) ||
+        (movie.description && movie.description.toLowerCase().includes(search));
+      
+      const matchesGenre = !genre || 
+        (movie.genre && movie.genre.includes(genre));
+      
+      const matchesRating = !rating || 
+        (movie.rating && movie.rating.toString() === rating);
+      
+      return matchesSearch && matchesGenre && matchesRating;
+    });
+  });
 
-  // Get unique genres from movies
-  get availableGenres(): string[] {
+  availableGenres = computed(() => {
     const genres = new Set<string>();
-    this.movies.forEach(movie => {
+    this.movies().forEach(movie => {
       movie.genre?.forEach(g => genres.add(g));
     });
     return Array.from(genres).sort();
-  }
+  });
 
   constructor(
     private router: Router,
@@ -46,43 +64,16 @@ export class ManageMoviesComponent implements OnInit {
   }
 
   loadMovies(): void {
-    this.loading = true;
+    this.loading.set(true);
     this.movieService.getMovies().subscribe({
       next: (movies) => {
-        this.movies = movies;
-        this.filterMovies();
-        this.loading = false;
+        this.movies.set(movies);
+        this.loading.set(false);
       },
-      error: (err) => {
-        console.error('Error loading movies:', err);
+      error: () => {
         this.alertService.error('Failed to load movies');
-        this.loading = false;
+        this.loading.set(false);
       }
-    });
-  }
-
-  onSearch(): void {
-    this.filterMovies();
-  }
-
-  onFilterChange(): void {
-    this.filterMovies();
-  }
-
-  filterMovies(): void {
-    this.filteredMovies = this.movies.filter(movie => {
-      const matchesSearch = !this.searchTerm || 
-        movie.title.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
-        (movie.description && movie.description.toLowerCase().includes(this.searchTerm.toLowerCase()));
-      
-      const matchesGenre = !this.selectedGenre || 
-        (movie.genre && movie.genre.includes(this.selectedGenre));
-      
-      // Note: Backend uses numeric rating, frontend might use string
-      const matchesRating = !this.selectedRating || 
-        (movie.rating && movie.rating.toString() === this.selectedRating);
-      
-      return matchesSearch && matchesGenre && matchesRating;
     });
   }
 
@@ -108,17 +99,16 @@ export class ManageMoviesComponent implements OnInit {
 
   deleteMovie(movie: Movie): void {
     if (confirm(`Are you sure you want to delete "${movie.title}"? This action cannot be undone.`)) {
-      this.deletingId = movie.id;
+      this.deletingId.set(movie.id);
       this.movieService.deleteMovie(movie.id).subscribe({
         next: () => {
           this.alertService.success('Movie deleted successfully!');
-          this.loadMovies(); // Reload to reflect changes
-          this.deletingId = null;
+          this.loadMovies();
+          this.deletingId.set(null);
         },
-        error: (err) => {
-          console.error('Error deleting movie:', err);
+        error: () => {
           this.alertService.error('Failed to delete movie');
-          this.deletingId = null;
+          this.deletingId.set(null);
         }
       });
     }
@@ -129,10 +119,9 @@ export class ManageMoviesComponent implements OnInit {
     this.movieService.updateMovie(movie.id, updatedMovie).subscribe({
       next: () => {
         this.alertService.success(`Movie ${updatedMovie.isActive ? 'activated' : 'deactivated'} successfully!`);
-        this.loadMovies(); // Reload to reflect changes
+        this.loadMovies();
       },
-      error: (err) => {
-        console.error('Error updating movie status:', err);
+      error: () => {
         this.alertService.error('Failed to update movie status');
       }
     });

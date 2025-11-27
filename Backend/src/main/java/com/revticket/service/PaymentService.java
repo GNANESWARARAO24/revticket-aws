@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -23,7 +24,7 @@ public class PaymentService {
 
     @Transactional
     public Payment processPayment(PaymentRequest request) {
-        Booking booking = bookingRepository.findById(request.getBookingId())
+        Booking booking = bookingRepository.findById(Objects.requireNonNullElse(request.getBookingId(), ""))
                 .orElseThrow(() -> new RuntimeException("Booking not found"));
 
         Payment payment = new Payment();

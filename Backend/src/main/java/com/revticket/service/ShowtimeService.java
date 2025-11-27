@@ -16,6 +16,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -75,9 +76,9 @@ public class ShowtimeService {
 
     @Transactional
     public ShowtimeResponse createShowtime(ShowtimeRequest request) {
-        Movie movie = movieRepository.findById(request.getMovieId())
+        Movie movie = movieRepository.findById(Objects.requireNonNullElse(request.getMovieId(), ""))
                 .orElseThrow(() -> new RuntimeException("Movie not found"));
-        Theater theater = theaterRepository.findById(request.getTheaterId())
+        Theater theater = theaterRepository.findById(Objects.requireNonNullElse(request.getTheaterId(), ""))
                 .orElseThrow(() -> new RuntimeException("Theater not found"));
 
         Showtime showtime = new Showtime();
@@ -95,12 +96,12 @@ public class ShowtimeService {
 
     @Transactional
     public ShowtimeResponse updateShowtime(String id, ShowtimeRequest request) {
-        Showtime showtime = showtimeRepository.findById(id)
+        Showtime showtime = showtimeRepository.findById(Objects.requireNonNullElse(id, ""))
                 .orElseThrow(() -> new RuntimeException("Showtime not found"));
 
-        Movie movie = movieRepository.findById(request.getMovieId())
+        Movie movie = movieRepository.findById(Objects.requireNonNullElse(request.getMovieId(), ""))
                 .orElseThrow(() -> new RuntimeException("Movie not found"));
-        Theater theater = theaterRepository.findById(request.getTheaterId())
+        Theater theater = theaterRepository.findById(Objects.requireNonNullElse(request.getTheaterId(), ""))
                 .orElseThrow(() -> new RuntimeException("Theater not found"));
 
         applyRequest(showtime, request, movie, theater, false);
@@ -109,7 +110,7 @@ public class ShowtimeService {
 
     @Transactional
     public void deleteShowtime(String id) {
-        Showtime showtime = showtimeRepository.findById(id)
+        Showtime showtime = showtimeRepository.findById(Objects.requireNonNullElse(id, ""))
                 .orElseThrow(() -> new RuntimeException("Showtime not found"));
         showtimeRepository.delete(showtime);
     }

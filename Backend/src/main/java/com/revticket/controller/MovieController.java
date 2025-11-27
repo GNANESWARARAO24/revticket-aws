@@ -23,7 +23,7 @@ public class MovieController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Movie> getMovieById(@PathVariable String id) {
+    public ResponseEntity<Movie> getMovieById(@PathVariable("id") String id) {
         return movieService.getMovieById(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
@@ -37,13 +37,13 @@ public class MovieController {
 
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Movie> updateMovie(@PathVariable String id, @RequestBody Movie movie) {
+    public ResponseEntity<Movie> updateMovie(@PathVariable("id") String id, @RequestBody Movie movie) {
         return ResponseEntity.ok(movieService.updateMovie(id, movie));
     }
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Void> deleteMovie(@PathVariable String id) {
+    public ResponseEntity<Void> deleteMovie(@PathVariable("id") String id) {
         movieService.deleteMovie(id);
         return ResponseEntity.ok().build();
     }

@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { finalize } from 'rxjs/operators';
@@ -13,14 +13,14 @@ import { AlertService } from '../../../core/services/alert.service';
   styleUrls: ['./manage-theatres.component.css']
 })
 export class ManageTheatresComponent implements OnInit {
-  theatres: Theater[] = [];
+  theatres = signal<Theater[]>([]);
   theatreForm: FormGroup;
-  showForm = false;
-  loading = false;
-  submitting = false;
-  deletingId: string | null = null;
-  statusUpdatingId: string | null = null;
-  editingTheatreId: string | null = null;
+  showForm = signal(false);
+  loading = signal(false);
+  submitting = signal(false);
+  deletingId = signal<string | null>(null);
+  statusUpdatingId = signal<string | null>(null);
+  editingTheatreId = signal<string | null>(null);
 
   constructor(
     private fb: FormBuilder,
@@ -42,21 +42,20 @@ export class ManageTheatresComponent implements OnInit {
   }
 
   loadTheatres(): void {
-    this.loading = true;
+    this.loading.set(true);
     this.theaterService.getAllTheaters(false)
-      .pipe(finalize(() => this.loading = false))
+      .pipe(finalize(() => this.loading.set(false)))
       .subscribe({
-        next: (theatres) => this.theatres = theatres,
-        error: (err) => {
-          console.error('Failed to load theatres', err);
+        next: (theatres) => this.theatres.set(theatres),
+        error: () => {
           this.alertService.error('Failed to load theaters. Please try again.');
         }
       });
   }
 
   addTheatre(): void {
-    this.showForm = true;
-    this.editingTheatreId = null;
+    this.showForm.set(true);
+    this.editingTheatreId.set(null);
     this.theatreForm.reset({
       name: '',
       location: '',
@@ -68,8 +67,8 @@ export class ManageTheatresComponent implements OnInit {
   }
 
   editTheatre(theatre: Theater): void {
-    this.showForm = true;
-    this.editingTheatreId = theatre.id;
+    this.showForm.set(true);
+    this.editingTheatreId.set(theatre.id);
     this.theatreForm.patchValue({
       name: theatre.name,
       location: theatre.location,
@@ -87,38 +86,37 @@ export class ManageTheatresComponent implements OnInit {
     }
 
     const payload = this.theatreForm.value;
-    this.submitting = true;
+    this.submitting.set(true);
 
-    const request$ = this.editingTheatreId
-      ? this.theaterService.updateTheater(this.editingTheatreId, payload)
+    const editId = this.editingTheatreId();
+    const request$ = editId
+      ? this.theaterService.updateTheater(editId, payload)
       : this.theaterService.createTheater(payload);
 
     request$
-      .pipe(finalize(() => this.submitting = false))
+      .pipe(finalize(() => this.submitting.set(false)))
       .subscribe({
         next: () => {
-          this.alertService.success(`Theater ${this.editingTheatreId ? 'updated' : 'created'} successfully`);
+          this.alertService.success(`Theater ${editId ? 'updated' : 'created'} successfully`);
           this.closeForm();
           this.loadTheatres();
         },
-        error: (err) => {
-          console.error('Failed to save theater', err);
+        error: () => {
           this.alertService.error('Unable to save theater. Please check the details and try again.');
         }
       });
   }
 
   toggleStatus(theatre: Theater): void {
-    this.statusUpdatingId = theatre.id;
+    this.statusUpdatingId.set(theatre.id);
     this.theaterService.updateTheaterStatus(theatre.id, !theatre.isActive)
-      .pipe(finalize(() => this.statusUpdatingId = null))
+      .pipe(finalize(() => this.statusUpdatingId.set(null)))
       .subscribe({
         next: (updated) => {
           this.alertService.success(`Theater ${updated.isActive ? 'activated' : 'deactivated'} successfully`);
-          this.theatres = this.theatres.map(t => t.id === updated.id ? updated : t);
+          this.theatres.update(theatres => theatres.map(t => t.id === updated.id ? updated : t));
         },
-        error: (err) => {
-          console.error('Failed to update status', err);
+        error: () => {
           this.alertService.error('Unable to update status. Please try again.');
         }
       });
@@ -129,16 +127,15 @@ export class ManageTheatresComponent implements OnInit {
       return;
     }
 
-    this.deletingId = theatre.id;
+    this.deletingId.set(theatre.id);
     this.theaterService.deleteTheater(theatre.id)
-      .pipe(finalize(() => this.deletingId = null))
+      .pipe(finalize(() => this.deletingId.set(null)))
       .subscribe({
         next: () => {
           this.alertService.success('Theater deleted successfully');
-          this.theatres = this.theatres.filter(t => t.id !== theatre.id);
+          this.theatres.update(theatres => theatres.filter(t => t.id !== theatre.id));
         },
-        error: (err) => {
-          console.error('Failed to delete theater', err);
+        error: () => {
           this.alertService.error('Unable to delete theater. Please try again.');
         }
       });
@@ -149,8 +146,8 @@ export class ManageTheatresComponent implements OnInit {
   }
 
   private closeForm(): void {
-    this.showForm = false;
-    this.editingTheatreId = null;
+    this.showForm.set(false);
+    this.editingTheatreId.set(null);
     this.theatreForm.reset();
   }
 

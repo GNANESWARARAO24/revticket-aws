@@ -1,5 +1,4 @@
-import { Injectable } from '@angular/core';
-import { BehaviorSubject } from 'rxjs';
+import { Injectable, signal } from '@angular/core';
 
 export interface Alert {
   id: string;
@@ -12,8 +11,8 @@ export interface Alert {
   providedIn: 'root'
 })
 export class AlertService {
-  private alertSubject = new BehaviorSubject<Alert[]>([]);
-  public alerts$ = this.alertSubject.asObservable();
+  private alertsSignal = signal<Alert[]>([]);
+  public alerts = this.alertsSignal.asReadonly();
 
   success(message: string, autoClose = true): void {
     this.addAlert('success', message, autoClose);
@@ -39,8 +38,7 @@ export class AlertService {
       autoClose
     };
 
-    const currentAlerts = this.alertSubject.value;
-    this.alertSubject.next([...currentAlerts, alert]);
+    this.alertsSignal.update(alerts => [...alerts, alert]);
 
     if (autoClose) {
       setTimeout(() => this.removeAlert(alert.id), 5000);
@@ -48,11 +46,10 @@ export class AlertService {
   }
 
   removeAlert(id: string): void {
-    const currentAlerts = this.alertSubject.value;
-    this.alertSubject.next(currentAlerts.filter(alert => alert.id !== id));
+    this.alertsSignal.update(alerts => alerts.filter(alert => alert.id !== id));
   }
 
   clear(): void {
-    this.alertSubject.next([]);
+    this.alertsSignal.set([]);
   }
 }

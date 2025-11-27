@@ -6,15 +6,15 @@
         <p class="hero-subtitle">Book premium movie tickets with the best seats, latest shows, and exclusive offers</p>
         <div class="hero-stats">
           <div class="stat-item">
-            <span class="stat-number">{{ displayMovieCount }}</span>
+            <span class="stat-number">{{ displayMovieCount() }}</span>
             <span class="stat-label">Movies</span>
           </div>
           <div class="stat-item">
-            <span class="stat-number">{{ displayTheaterCount }}</span>
+            <span class="stat-number">{{ displayTheaterCount() }}</span>
             <span class="stat-label">Theaters</span>
           </div>
           <div class="stat-item">
-            <span class="stat-number">{{ stats.totalCustomers }}</span>
+            <span class="stat-number">{{ stats().totalCustomers }}</span>
             <span class="stat-label">Happy Customers</span>
           </div>
         </div>
@@ -40,37 +40,42 @@
     <div class="search-filter-container">
       <div class="search-box">
         <input type="text" 
-               [(ngModel)]="searchTerm" 
-               (input)="onSearch()"
+               [value]="searchTerm()" 
+               (input)="onSearch($any($event.target).value)"
                placeholder="Search movies..."
                class="search-input">
         <span class="search-icon">🔍</span>
       </div>
       <div class="section-filters">
-        <button *ngFor="let genre of genres" 
-                class="filter-btn"
-                [class.active]="selectedGenre === genre"
-                (click)="onGenreFilter(genre)">
-          {{ genre }}
-        </button>
+        @for (genre of genres(); track genre) {
+          <button class="filter-btn"
+                  [class.active]="selectedGenre() === genre"
+                  (click)="onGenreFilter(genre)">
+            {{ genre }}
+          </button>
+        }
       </div>
     </div>
     
-    <app-loader *ngIf="loading" class="loader-container"></app-loader>
+    @if (loading()) {
+      <app-loader class="loader-container"></app-loader>
+    }
     
-    <div class="movies-grid" *ngIf="!loading">
-      <app-movie-card 
-        *ngFor="let movie of filteredMovies" 
-        [movie]="movie"
-        class="movie-card-item">
-      </app-movie-card>
-    </div>
+    @if (!loading()) {
+      <div class="movies-grid">
+        @for (movie of filteredMovies(); track movie.id) {
+          <app-movie-card [movie]="movie" class="movie-card-item"></app-movie-card>
+        }
+      </div>
+    }
     
-    <div class="empty-state" *ngIf="!loading && filteredMovies.length === 0">
-      <div class="empty-icon">🎬</div>
-      <h3>No Movies Found</h3>
-      <p>Try adjusting your search or filter criteria</p>
-    </div>
+    @if (!loading() && filteredMovies().length === 0) {
+      <div class="empty-state">
+        <div class="empty-icon">🎬</div>
+        <h3>No Movies Found</h3>
+        <p>Try adjusting your search or filter criteria</p>
+      </div>
+    }
   </section>
 
   <section class="features-section">

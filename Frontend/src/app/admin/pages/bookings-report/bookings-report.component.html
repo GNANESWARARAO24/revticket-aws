@@ -16,17 +16,17 @@
     </div>
   </div>
 
-  <div class="loading-state" *ngIf="loading">
+  <div class="loading-state" *ngIf="loading()">
     <div class="spinner"></div>
     <p>Loading bookings data...</p>
   </div>
 
   <!-- Summary Cards -->
-  <div class="summary-cards" *ngIf="!loading">
+  <div class="summary-cards" *ngIf="!loading()">
     <div class="summary-card">
       <div class="card-icon total">📊</div>
       <div class="card-content">
-        <h3>{{ totalBookings }}</h3>
+        <h3>{{ totalBookings() }}</h3>
         <p>Total Bookings</p>
         <span class="trend positive">+12% from last month</span>
       </div>
@@ -35,7 +35,7 @@
     <div class="summary-card">
       <div class="card-icon revenue">💰</div>
       <div class="card-content">
-        <h3>₹{{ totalRevenue | number:'1.0-0' }}</h3>
+        <h3>₹{{ totalRevenue() | number:'1.0-0' }}</h3>
         <p>Total Revenue</p>
         <span class="trend positive">+8% from last month</span>
       </div>
@@ -44,7 +44,7 @@
     <div class="summary-card">
       <div class="card-icon today">📅</div>
       <div class="card-content">
-        <h3>{{ todayBookings }}</h3>
+        <h3>{{ todayBookings() }}</h3>
         <p>Today's Bookings</p>
         <span class="trend neutral">Same as yesterday</span>
       </div>
@@ -53,9 +53,9 @@
     <div class="summary-card">
       <div class="card-icon avg">🎫</div>
       <div class="card-content">
-        <h3>{{ avgTicketsPerBooking | number:'1.1-1' }}</h3>
+        <h3>{{ avgTicketsPerBooking() | number:'1.1-1' }}</h3>
         <p>Avg Tickets/Booking</p>
-        <span class="trend positive">{{ cancelledBookings }} cancelled</span>
+        <span class="trend positive">{{ cancelledBookings() }} cancelled</span>
       </div>
     </div>
   </div>
@@ -65,26 +65,26 @@
     <div class="date-filters">
       <div class="date-group">
         <label>From Date:</label>
-        <input type="date" [(ngModel)]="fromDate" (change)="onFilterChange()">
+        <input type="date" [(ngModel)]="fromDate">
       </div>
       <div class="date-group">
         <label>To Date:</label>
-        <input type="date" [(ngModel)]="toDate" (change)="onFilterChange()">
+        <input type="date" [(ngModel)]="toDate">
       </div>
     </div>
 
     <div class="filter-controls">
-      <select [(ngModel)]="selectedMovie" (change)="onFilterChange()">
+      <select [(ngModel)]="selectedMovie">
         <option value="">All Movies</option>
-        <option *ngFor="let movie of movies" [value]="movie.title">{{ movie.title }}</option>
+        <option *ngFor="let movie of movies()" [value]="movie.title">{{ movie.title }}</option>
       </select>
 
-      <select [(ngModel)]="selectedTheater" (change)="onFilterChange()">
+      <select [(ngModel)]="selectedTheater">
         <option value="">All Theaters</option>
-        <option *ngFor="let theater of theaters" [value]="theater.name">{{ theater.name }}</option>
+        <option *ngFor="let theater of theaters()" [value]="theater.name">{{ theater.name }}</option>
       </select>
 
-      <select [(ngModel)]="selectedStatus" (change)="onFilterChange()">
+      <select [(ngModel)]="selectedStatus">
         <option value="">All Status</option>
         <option value="CONFIRMED">Confirmed</option>
         <option value="CANCELLED">Cancelled</option>
@@ -94,7 +94,7 @@
   </div>
 
   <!-- Charts Section -->
-  <div class="charts-section" *ngIf="!loading">
+  <div class="charts-section" *ngIf="!loading()">
     <div class="chart-card">
       <h3>Daily Bookings Trend (Last 7 Days)</h3>
       <div class="chart-placeholder">
@@ -112,7 +112,7 @@
           </span>
         </div> -->
         <div class="chart-labels">
-          <span *ngFor="let label of weekDayLabels">
+          <span *ngFor="let label of weekDayLabels()">
             {{ label }}
           </span>
         </div>
@@ -137,11 +137,11 @@
   </div>
 
   <!-- Bookings Table -->
-  <div class="table-section" *ngIf="!loading">
+  <div class="table-section" *ngIf="!loading()">
     <div class="table-header">
       <h3>Recent Bookings</h3>
       <div class="table-actions">
-        <input type="text" placeholder="Search bookings..." [(ngModel)]="searchTerm" (input)="onSearch()"
+        <input type="text" placeholder="Search bookings..." [(ngModel)]="searchTerm"
           class="search-input">
       </div>
     </div>
@@ -162,7 +162,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let booking of paginatedBookings; trackBy: trackByBookingId">
+          <tr *ngFor="let booking of paginatedBookings(); trackBy: trackByBookingId">
             <td class="booking-id">#{{ booking.id }}</td>
             <td>
               <div class="customer-info">
@@ -205,16 +205,16 @@
 
     <div class="table-pagination">
       <span class="pagination-info">
-        Showing {{ (currentPage - 1) * itemsPerPage + 1 }} to
+        Showing {{ (currentPage() - 1) * itemsPerPage() + 1 }} to
         {{ getEndIndex() }}
-        of {{ filteredBookings.length }} bookings
+        of {{ filteredBookings().length }} bookings
       </span>
       <div class="pagination-controls">
-        <button class="btn-pagination" [disabled]="currentPage === 1" (click)="previousPage()">
+        <button class="btn-pagination" [disabled]="currentPage() === 1" (click)="previousPage()">
           Previous
         </button>
-        <span class="page-info">Page {{ currentPage }} of {{ totalPages }}</span>
-        <button class="btn-pagination" [disabled]="currentPage === totalPages" (click)="nextPage()">
+        <span class="page-info">Page {{ currentPage() }} of {{ totalPages() }}</span>
+        <button class="btn-pagination" [disabled]="currentPage() === totalPages()" (click)="nextPage()">
           Next
         </button>
       </div>

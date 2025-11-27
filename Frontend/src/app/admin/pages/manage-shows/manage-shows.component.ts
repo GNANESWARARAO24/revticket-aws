@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -39,33 +39,56 @@ interface ShowtimeForm {
   styleUrls: ['./manage-shows.component.css']
 })
 export class ManageShowsComponent implements OnInit {
-  shows: Showtime[] = [];
-  filteredShows: Showtime[] = [];
-  movies: Movie[] = [];
-  theaters: Theater[] = [];
+  shows = signal<Showtime[]>([]);
+  movies = signal<Movie[]>([]);
+  theaters = signal<Theater[]>([]);
 
-  searchTerm = '';
-  selectedMovieId = '';
-  selectedTheaterId = '';
-  selectedDate = '';
-  showAddForm = false;
-  isEditMode = false;
-  editingShowId: string | null = null;
-  loading = false;
-  submitting = false;
-  deleteInProgressId: string | null = null;
+  searchTerm = signal('');
+  selectedMovieId = signal('');
+  selectedTheaterId = signal('');
+  selectedDate = signal('');
+  showAddForm = signal(false);
+  isEditMode = signal(false);
+  editingShowId = signal<string | null>(null);
+  loading = signal(false);
+  submitting = signal(false);
+  deleteInProgressId = signal<string | null>(null);
+  
+  filteredShows = computed(() => {
+    const shows = this.shows();
+    const search = this.searchTerm().toLowerCase().trim();
+    const movieId = this.selectedMovieId();
+    const theaterId = this.selectedTheaterId();
+    const date = this.selectedDate();
+    
+    if (!shows || shows.length === 0) {
+      return [];
+    }
 
-  newShow: ShowtimeForm = {
-    movieId: '',
-    theaterId: '',
-    screen: '',
-    showDateTime: '',
-    ticketPrice: null,
-    totalSeats: null,
-    status: 'ACTIVE',
-    seatLayout: [],
-    useCustomLayout: false
-  };
+    return shows.filter(show => {
+      const movieTitle = show.movie?.title?.toLowerCase() || '';
+      const theaterName = show.theater?.name?.toLowerCase() || '';
+      const matchesSearch = !search || movieTitle.includes(search) || theaterName.includes(search);
+
+      const matchesMovie = !movieId || show.movieId === movieId;
+      const matchesTheater = !theaterId || show.theaterId === theaterId;
+
+      let matchesDate = true;
+      if (date) {
+        try {
+          const showDate = new Date(show.showDateTime).toDateString();
+          const filterDate = new Date(date).toDateString();
+          matchesDate = showDate === filterDate;
+        } catch (e) {
+          matchesDate = true;
+        }
+      }
+
+      return matchesSearch && matchesMovie && matchesTheater && matchesDate;
+    });
+  });
+
+  newShow: ShowtimeForm = this.getEmptyForm();
 
   constructor(
     private showtimeService: ShowtimeService,
@@ -77,82 +100,9 @@ export class ManageShowsComponent implements OnInit {
   ngOnInit(): void {
     this.loadData();
   }
-
-  loadData(): void {
-    this.loading = true;
-    forkJoin({
-      movies: this.movieService.getMovies(),
-      theaters: this.theaterService.getAllTheaters(false),
-      showtimes: this.showtimeService.getShowtimes()
-    })
-      .pipe(finalize(() => this.loading = false))
-      .subscribe({
-        next: ({ movies, theaters, showtimes }) => {
-          this.movies = movies;
-          this.theaters = theaters;
-          this.shows = showtimes.map(s => this.mapShowtimeToView(s));
-          this.filterShows();
-        },
-        error: (err) => {
-          console.error('Failed to load admin data', err);
-          this.alertService.error('Failed to load movies, theaters, or showtimes.');
-        }
-      });
-  }
-
-  private reloadShowtimes(): void {
-    this.showtimeService.getShowtimes().subscribe({
-      next: (showtimes) => {
-        this.shows = showtimes.map(s => this.mapShowtimeToView(s));
-        this.filterShows();
-      },
-      error: (err) => {
-        console.error('Failed to refresh showtimes', err);
-        this.alertService.error('Unable to refresh showtimes.');
-      }
-    });
-  }
-
-  onSearch(): void {
-    this.filterShows();
-  }
-
-  onFilterChange(): void {
-    this.filterShows();
-  }
-
-  filterShows(): void {
-    const search = this.searchTerm.toLowerCase();
-    this.filteredShows = this.shows.filter(show => {
-      const movieTitle = show.movie?.title?.toLowerCase() || '';
-      const theaterName = show.theater?.name?.toLowerCase() || '';
-      const matchesSearch = !search || movieTitle.includes(search) || theaterName.includes(search);
-
-      const matchesMovie = !this.selectedMovieId || show.movieId === this.selectedMovieId;
-      const matchesTheater = !this.selectedTheaterId || show.theaterId === this.selectedTheaterId;
-
-      let matchesDate = true;
-      if (this.selectedDate) {
-        const showDate = new Date(show.showDateTime).toDateString();
-        const filterDate = new Date(this.selectedDate).toDateString();
-        matchesDate = showDate === filterDate;
-      }
-
-      return matchesSearch && matchesMovie && matchesTheater && matchesDate;
-    });
-  }
-
-
-
-  addNewShow(): void {
-    this.isEditMode = false;
-    this.editingShowId = null;
-    this.showAddForm = true;
-    this.resetForm();
-  }
-
-  resetForm(): void {
-    this.newShow = {
+  
+  private getEmptyForm(): ShowtimeForm {
+    return {
       movieId: '',
       theaterId: '',
       screen: '',
@@ -163,6 +113,56 @@ export class ManageShowsComponent implements OnInit {
       seatLayout: [],
       useCustomLayout: false
     };
+  }
+
+  loadData(): void {
+    this.loading.set(true);
+    forkJoin({
+      movies: this.movieService.getMovies(),
+      theaters: this.theaterService.getAllTheaters(false),
+      showtimes: this.showtimeService.getShowtimes()
+    })
+      .pipe(finalize(() => this.loading.set(false)))
+      .subscribe({
+        next: ({ movies, theaters, showtimes }) => {
+          this.movies.set(movies || []);
+          this.theaters.set(theaters || []);
+          this.shows.set((showtimes || []).map(s => this.mapShowtimeToView(s)));
+        },
+        error: (err) => {
+          console.error('Load data error:', err);
+          this.alertService.error('Failed to load movies, theaters, or showtimes.');
+          this.movies.set([]);
+          this.theaters.set([]);
+          this.shows.set([]);
+        }
+      });
+  }
+
+  private reloadShowtimes(): void {
+    this.loading.set(true);
+    this.showtimeService.getShowtimes()
+      .pipe(finalize(() => this.loading.set(false)))
+      .subscribe({
+        next: (showtimes) => {
+          this.shows.set((showtimes || []).map(s => this.mapShowtimeToView(s)));
+        },
+        error: (err) => {
+          console.error('Reload showtimes error:', err);
+          this.alertService.error('Unable to refresh showtimes.');
+        }
+      });
+  }
+
+  addNewShow(): void {
+    this.isEditMode.set(false);
+    this.editingShowId.set(null);
+    this.showAddForm.set(true);
+    this.resetForm();
+  }
+
+  resetForm(): void {
+    this.newShow = this.getEmptyForm();
   }
 
   addSeatSection(): void {
@@ -211,26 +211,26 @@ export class ManageShowsComponent implements OnInit {
       payload.seatLayout = this.newShow.seatLayout;
     }
 
-    if (!this.isEditMode) {
+    if (!this.isEditMode()) {
       payload.availableSeats = payload.totalSeats;
     }
 
-    this.submitting = true;
+    this.submitting.set(true);
 
-    const request$ = this.isEditMode && this.editingShowId
-      ? this.showtimeService.updateShowtime(this.editingShowId, payload)
+    const editId = this.editingShowId();
+    const request$ = this.isEditMode() && editId
+      ? this.showtimeService.updateShowtime(editId, payload)
       : this.showtimeService.createShowtime(payload);
 
     request$
-      .pipe(finalize(() => this.submitting = false))
+      .pipe(finalize(() => this.submitting.set(false)))
       .subscribe({
         next: () => {
-          this.alertService.success(`Show ${this.isEditMode ? 'updated' : 'created'} successfully!`);
+          this.alertService.success(`Show ${this.isEditMode() ? 'updated' : 'created'} successfully!`);
           this.cancelAdd();
           this.reloadShowtimes();
         },
-        error: (err) => {
-          console.error('Failed to save show', err);
+        error: () => {
           this.alertService.error('Unable to save show. Please try again.');
         }
       });
@@ -264,16 +264,16 @@ export class ManageShowsComponent implements OnInit {
   }
 
   cancelAdd(): void {
-    this.showAddForm = false;
-    this.isEditMode = false;
-    this.editingShowId = null;
+    this.showAddForm.set(false);
+    this.isEditMode.set(false);
+    this.editingShowId.set(null);
     this.resetForm();
   }
 
   editShow(show: Showtime): void {
-    this.isEditMode = true;
-    this.editingShowId = show.id;
-    this.showAddForm = true;
+    this.isEditMode.set(true);
+    this.editingShowId.set(show.id);
+    this.showAddForm.set(true);
 
     this.newShow = {
       movieId: show.movieId,
@@ -297,23 +297,22 @@ export class ManageShowsComponent implements OnInit {
       return;
     }
 
-    this.deleteInProgressId = show.id;
+    this.deleteInProgressId.set(show.id);
     this.showtimeService.deleteShowtime(show.id)
-      .pipe(finalize(() => this.deleteInProgressId = null))
+      .pipe(finalize(() => this.deleteInProgressId.set(null)))
       .subscribe({
         next: () => {
           this.alertService.success('Show deleted successfully!');
           this.reloadShowtimes();
         },
-        error: (err) => {
-          console.error('Error deleting show:', err);
+        error: () => {
           this.alertService.error('Failed to delete show.');
         }
       });
   }
 
   hasFilters(): boolean {
-    return !!(this.searchTerm || this.selectedMovieId || this.selectedTheaterId || this.selectedDate);
+    return !!(this.searchTerm() || this.selectedMovieId() || this.selectedTheaterId() || this.selectedDate());
   }
 
   getEmptyStateMessage(): string {
@@ -338,7 +337,7 @@ export class ManageShowsComponent implements OnInit {
   }
 
   private toMovieSummary(movieId: string): Showtime['movie'] {
-    const movie = this.movies.find(m => m.id === movieId);
+    const movie = this.movies().find(m => m.id === movieId);
     return movie
       ? {
           id: movie.id,
@@ -359,7 +358,7 @@ export class ManageShowsComponent implements OnInit {
   }
 
   private toTheaterSummary(theaterId: string): Showtime['theater'] {
-    const theater = this.theaters.find(t => t.id === theaterId);
+    const theater = this.theaters().find(t => t.id === theaterId);
     return theater
       ? { id: theater.id, name: theater.name, location: theater.location }
       : { id: theaterId, name: 'Unknown', location: '' };

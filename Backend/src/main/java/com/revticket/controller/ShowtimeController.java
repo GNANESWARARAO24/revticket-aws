@@ -23,9 +23,9 @@ public class ShowtimeController {
 
     @GetMapping
     public ResponseEntity<List<ShowtimeResponse>> getShowtimes(
-            @RequestParam(required = false) String movieId,
-            @RequestParam(required = false) String theaterId,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+            @RequestParam(name = "movieId", required = false) String movieId,
+            @RequestParam(name = "theaterId", required = false) String theaterId,
+            @RequestParam(name = "date", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
         if (movieId != null && date != null) {
             return ResponseEntity.ok(showtimeService.getShowtimesByMovieAndDate(movieId, date));
         }
@@ -40,8 +40,8 @@ public class ShowtimeController {
 
     @GetMapping("/movie/{movieId}")
     public ResponseEntity<List<ShowtimeResponse>> getShowtimesByMovie(
-            @PathVariable String movieId,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+            @PathVariable("movieId") String movieId,
+            @RequestParam(name = "date", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
         if (date != null) {
             return ResponseEntity.ok(showtimeService.getShowtimesByMovieAndDate(movieId, date));
         }
@@ -49,7 +49,7 @@ public class ShowtimeController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ShowtimeResponse> getShowtimeById(@PathVariable String id) {
+    public ResponseEntity<ShowtimeResponse> getShowtimeById(@PathVariable("id") String id) {
         return showtimeService.getShowtimeById(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
@@ -63,14 +63,14 @@ public class ShowtimeController {
 
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ShowtimeResponse> updateShowtime(@PathVariable String id,
+    public ResponseEntity<ShowtimeResponse> updateShowtime(@PathVariable("id") String id,
                                                            @Valid @RequestBody ShowtimeRequest request) {
         return ResponseEntity.ok(showtimeService.updateShowtime(id, request));
     }
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Void> deleteShowtime(@PathVariable String id) {
+    public ResponseEntity<Void> deleteShowtime(@PathVariable("id") String id) {
         showtimeService.deleteShowtime(id);
         return ResponseEntity.ok().build();
     }

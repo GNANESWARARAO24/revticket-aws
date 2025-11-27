@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 @Service
@@ -19,7 +20,7 @@ public class MovieService {
     }
 
     public Optional<Movie> getMovieById(String id) {
-        return movieRepository.findById(id);
+        return movieRepository.findById(Objects.requireNonNullElse(id, ""));
     }
 
     public Movie createMovie(Movie movie) {
@@ -27,7 +28,7 @@ public class MovieService {
     }
 
     public Movie updateMovie(String id, Movie movieDetails) {
-        Movie movie = movieRepository.findById(id)
+        Movie movie = movieRepository.findById(Objects.requireNonNullElse(id, ""))
                 .orElseThrow(() -> new RuntimeException("Movie not found"));
         
         movie.setTitle(movieDetails.getTitle());
@@ -45,7 +46,7 @@ public class MovieService {
     }
 
     public void deleteMovie(String id) {
-        Movie movie = movieRepository.findById(id)
+        Movie movie = movieRepository.findById(Objects.requireNonNullElse(id, ""))
                 .orElseThrow(() -> new RuntimeException("Movie not found"));
         movie.setIsActive(false);
         movieRepository.save(movie);

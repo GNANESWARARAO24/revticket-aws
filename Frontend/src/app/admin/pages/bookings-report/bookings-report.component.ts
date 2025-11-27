@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { BookingService } from '../../../core/services/booking.service';
@@ -16,34 +16,91 @@ import { forkJoin } from 'rxjs';
   styleUrls: ['./bookings-report.component.css']
 })
 export class BookingsReportComponent implements OnInit {
-  // Summary data
-  totalBookings = 0;
-  totalRevenue = 0;
-  todayBookings = 0;
-  avgTicketsPerBooking = 0;
-  cancelledBookings = 0;
-
   // Filter properties
-  fromDate = '';
-  toDate = '';
-  selectedMovie = '';
-  selectedTheater = '';
-  selectedStatus = '';
-  searchTerm = '';
-  weekDayLabels: string[] = [];
+  fromDate = signal('');
+  toDate = signal('');
+  selectedMovie = signal('');
+  selectedTheater = signal('');
+  selectedStatus = signal('');
+  searchTerm = signal('');
+  weekDayLabels = signal<string[]>([]);
 
   // Data
-  allBookings: Booking[] = [];
-  filteredBookings: Booking[] = [];
-  movies: any[] = [];
-  theaters: any[] = [];
+  allBookings = signal<Booking[]>([]);
+  movies = signal<any[]>([]);
+  theaters = signal<any[]>([]);
 
   // Pagination
-  currentPage = 1;
-  itemsPerPage = 10;
-  totalPages = 1;
+  currentPage = signal(1);
+  itemsPerPage = signal(10);
 
-  loading = false;
+  loading = signal(false);
+  
+  filteredBookings = computed(() => {
+    const bookings = this.allBookings();
+    const from = this.fromDate();
+    const to = this.toDate();
+    const movie = this.selectedMovie();
+    const theater = this.selectedTheater();
+    const status = this.selectedStatus();
+    const search = this.searchTerm().toLowerCase();
+    
+    return bookings.filter(booking => {
+      let matchesDate = true;
+      if (from && to) {
+        const bookingDate = new Date(booking.bookingDate);
+        const fromDate = new Date(from);
+        const toDate = new Date(to);
+        toDate.setHours(23, 59, 59, 999);
+        matchesDate = bookingDate >= fromDate && bookingDate <= toDate;
+      }
+
+      const matchesSearch = !search || 
+        (booking.customerName && booking.customerName.toLowerCase().includes(search)) ||
+        (booking.customerEmail && booking.customerEmail.toLowerCase().includes(search)) ||
+        (booking.id && booking.id.toLowerCase().includes(search));
+
+      const matchesMovie = !movie || booking.movieTitle === movie;
+      const matchesTheater = !theater || booking.theaterName === theater;
+      const matchesStatus = !status || booking.status === status;
+
+      return matchesDate && matchesSearch && matchesMovie && matchesTheater && matchesStatus;
+    });
+  });
+  
+  totalPages = computed(() => Math.ceil(this.filteredBookings().length / this.itemsPerPage()));
+  
+  paginatedBookings = computed(() => {
+    const start = (this.currentPage() - 1) * this.itemsPerPage();
+    const end = start + this.itemsPerPage();
+    return this.filteredBookings().slice(start, end);
+  });
+  
+  totalBookings = computed(() => this.filteredBookings().length);
+  
+  totalRevenue = computed(() => {
+    const confirmedBookings = this.filteredBookings().filter(b => b.status === 'CONFIRMED');
+    return confirmedBookings.reduce((sum, b) => sum + (b.totalAmount || 0), 0);
+  });
+  
+  todayBookings = computed(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return this.filteredBookings().filter(b => {
+      const bookingDate = new Date(b.bookingDate);
+      bookingDate.setHours(0, 0, 0, 0);
+      return bookingDate.getTime() === today.getTime();
+    }).length;
+  });
+  
+  cancelledBookings = computed(() => this.filteredBookings().filter(b => b.status === 'CANCELLED').length);
+  
+  avgTicketsPerBooking = computed(() => {
+    const bookings = this.filteredBookings();
+    if (bookings.length === 0) return 0;
+    const totalTickets = bookings.reduce((sum, b) => sum + (b.seats?.length || 0), 0);
+    return totalTickets / bookings.length;
+  });
 
   constructor(
     private bookingService: BookingService,
@@ -66,33 +123,29 @@ export class BookingsReportComponent implements OnInit {
       const d = new Date(today);
       d.setDate(today.getDate() - i);
       labels.push(
-        d.toLocaleDateString('en-US', { weekday: 'short' })  // Mon, Tue, Wed
+        d.toLocaleDateString('en-US', { weekday: 'short' })
       );
     }
   
-    this.weekDayLabels = labels;
+    this.weekDayLabels.set(labels);
   }
 
   loadData(): void {
-    this.loading = true;
+    this.loading.set(true);
     forkJoin({
       bookings: this.bookingService.getAllBookings(),
       movies: this.movieService.getMovies(),
       theaters: this.theaterService.getAllTheaters()
     }).subscribe({
       next: ({ bookings, movies, theaters }) => {
-        this.allBookings = bookings;
-        this.movies = movies;
-        this.theaters = theaters;
-        this.calculateSummary();
-        this.filterBookings();
-        this.updatePagination();
-        this.loading = false;
+        this.allBookings.set(bookings);
+        this.movies.set(movies);
+        this.theaters.set(theaters);
+        this.loading.set(false);
       },
-      error: (err) => {
-        console.error('Error loading data:', err);
+      error: () => {
         this.alertService.error('Failed to load bookings data');
-        this.loading = false;
+        this.loading.set(false);
       }
     });
   }
@@ -101,98 +154,23 @@ export class BookingsReportComponent implements OnInit {
     const today = new Date();
     const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, today.getDate());
     
-    this.fromDate = lastMonth.toISOString().split('T')[0];
-    this.toDate = today.toISOString().split('T')[0];
-  }
-
-  calculateSummary(): void {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    this.totalBookings = this.allBookings.length;
-    
-    const confirmedBookings = this.allBookings.filter(b => b.status === 'CONFIRMED');
-    this.totalRevenue = confirmedBookings.reduce((sum, b) => sum + (b.totalAmount || 0), 0);
-    
-    this.todayBookings = this.allBookings.filter(b => {
-      const bookingDate = new Date(b.bookingDate);
-      bookingDate.setHours(0, 0, 0, 0);
-      return bookingDate.getTime() === today.getTime();
-    }).length;
-
-    this.cancelledBookings = this.allBookings.filter(b => b.status === 'CANCELLED').length;
-
-    const totalTickets = this.allBookings.reduce((sum, b) => sum + (b.seats?.length || 0), 0);
-    this.avgTicketsPerBooking = this.totalBookings > 0 ? totalTickets / this.totalBookings : 0;
+    this.fromDate.set(lastMonth.toISOString().split('T')[0]);
+    this.toDate.set(today.toISOString().split('T')[0]);
   }
 
   onFilterChange(): void {
-    this.filterBookings();
-    this.currentPage = 1;
-    this.updatePagination();
-  }
-
-  onSearch(): void {
-    this.filterBookings();
-    this.currentPage = 1;
-    this.updatePagination();
-  }
-
-  filterBookings(): void {
-    this.filteredBookings = this.allBookings.filter(booking => {
-      // Date filter
-      let matchesDate = true;
-      if (this.fromDate && this.toDate) {
-        const bookingDate = new Date(booking.bookingDate);
-        const from = new Date(this.fromDate);
-        const to = new Date(this.toDate);
-        to.setHours(23, 59, 59, 999);
-        matchesDate = bookingDate >= from && bookingDate <= to;
-      }
-
-      // Search filter
-      const matchesSearch = !this.searchTerm || 
-        (booking.customerName && booking.customerName.toLowerCase().includes(this.searchTerm.toLowerCase())) ||
-        (booking.customerEmail && booking.customerEmail.toLowerCase().includes(this.searchTerm.toLowerCase())) ||
-        (booking.id && booking.id.toLowerCase().includes(this.searchTerm.toLowerCase()));
-
-      // Movie filter
-      const matchesMovie = !this.selectedMovie || booking.movieTitle === this.selectedMovie;
-
-      // Theater filter
-      const matchesTheater = !this.selectedTheater || booking.theaterName === this.selectedTheater;
-
-      // Status filter
-      const matchesStatus = !this.selectedStatus || booking.status === this.selectedStatus;
-
-      return matchesDate && matchesSearch && matchesMovie && matchesTheater && matchesStatus;
-    });
-
-    this.calculateSummary();
-  }
-
-  updatePagination(): void {
-    this.totalPages = Math.ceil(this.filteredBookings.length / this.itemsPerPage);
-    if (this.currentPage > this.totalPages && this.totalPages > 0) {
-      this.currentPage = this.totalPages;
-    }
-  }
-
-  get paginatedBookings() {
-    const start = (this.currentPage - 1) * this.itemsPerPage;
-    const end = start + this.itemsPerPage;
-    return this.filteredBookings.slice(start, end);
+    this.currentPage.set(1);
   }
 
   previousPage(): void {
-    if (this.currentPage > 1) {
-      this.currentPage--;
+    if (this.currentPage() > 1) {
+      this.currentPage.update(p => p - 1);
     }
   }
 
   nextPage(): void {
-    if (this.currentPage < this.totalPages) {
-      this.currentPage++;
+    if (this.currentPage() < this.totalPages()) {
+      this.currentPage.update(p => p + 1);
     }
   }
 
@@ -214,7 +192,7 @@ export class BookingsReportComponent implements OnInit {
   }
 
   getEndIndex(): number {
-    return Math.min(this.currentPage * this.itemsPerPage, this.filteredBookings.length);
+    return Math.min(this.currentPage() * this.itemsPerPage(), this.filteredBookings().length);
   }
 
   formatCurrency(amount: number): string {
@@ -228,13 +206,14 @@ export class BookingsReportComponent implements OnInit {
   getDailyBookingsData(): number[] {
     const last7Days = [];
     const today = new Date();
+    const bookings = this.filteredBookings();
     
     for (let i = 6; i >= 0; i--) {
       const date = new Date(today);
       date.setDate(date.getDate() - i);
       date.setHours(0, 0, 0, 0);
       
-      const count = this.filteredBookings.filter(b => {
+      const count = bookings.filter(b => {
         const bookingDate = new Date(b.bookingDate);
         bookingDate.setHours(0, 0, 0, 0);
         return bookingDate.getTime() === date.getTime();
@@ -248,8 +227,9 @@ export class BookingsReportComponent implements OnInit {
 
   getPopularMovies(): any[] {
     const movieStats = new Map<string, { title: string; bookings: number }>();
+    const bookings = this.filteredBookings();
     
-    this.filteredBookings.forEach(booking => {
+    bookings.forEach(booking => {
       const key = booking.movieId || booking.movieTitle;
       const current = movieStats.get(key) || { title: booking.movieTitle, bookings: 0 };
       current.bookings++;

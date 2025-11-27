@@ -1,10 +1,10 @@
 <div class="profile-container">
-  <div class="loading-overlay" *ngIf="loadingProfile">
+  <div class="loading-overlay" *ngIf="loadingProfile()">
     <div class="spinner"></div>
     <p>Loading profile...</p>
   </div>
 
-  <div *ngIf="!loadingProfile && user">
+  <div *ngIf="!loadingProfile() && user()">
     <div class="profile-header">
       <div class="profile-avatar">
         <img 
@@ -29,19 +29,19 @@
       <div class="profile-tabs">
         <button 
           class="tab-btn" 
-          [class.active]="activeTab === 'personal'"
+          [class.active]="activeTab() === 'personal'"
           (click)="setActiveTab('personal')">
           Personal Info
         </button>
         <button 
           class="tab-btn" 
-          [class.active]="activeTab === 'preferences'"
+          [class.active]="activeTab() === 'preferences'"
           (click)="setActiveTab('preferences')">
           Preferences
         </button>
         <button 
           class="tab-btn" 
-          [class.active]="activeTab === 'security'"
+          [class.active]="activeTab() === 'security'"
           (click)="setActiveTab('security')">
           Security
         </button>
@@ -49,7 +49,7 @@
 
       <div class="tab-content">
         <!-- Personal Info Tab -->
-        <div class="tab-panel" *ngIf="activeTab === 'personal'">
+        <div class="tab-panel" *ngIf="activeTab() === 'personal'">
           <div class="section-card">
             <h3>Personal Information</h3>
             <form [formGroup]="profileForm" (ngSubmit)="updateProfile()">
@@ -117,8 +117,8 @@
               </div>
 
               <div class="form-actions">
-                <button type="submit" class="btn-primary" [disabled]="profileForm.invalid || loading">
-                  {{ loading ? 'Updating...' : 'Update Profile' }}
+                <button type="submit" class="btn-primary" [disabled]="profileForm.invalid || loading()">
+                  {{ loading() ? 'Updating...' : 'Update Profile' }}
                 </button>
               </div>
             </form>
@@ -126,13 +126,13 @@
         </div>
 
         <!-- Preferences Tab -->
-        <div class="tab-panel" *ngIf="activeTab === 'preferences'">
+        <div class="tab-panel" *ngIf="activeTab() === 'preferences'">
           <div class="section-card">
             <h3>Movie Preferences</h3>
             <div class="preferences-grid">
               <div class="preference-item">
                 <label>Preferred Language</label>
-                <select [(ngModel)]="preferences.language">
+                <select [ngModel]="preferences().language" (ngModelChange)="updateLanguage($event)">
                   <option value="english">English</option>
                   <option value="hindi">Hindi</option>
                   <option value="tamil">Tamil</option>
@@ -149,21 +149,24 @@
                     <input 
                       type="checkbox" 
                       id="emailNotifications" 
-                      [(ngModel)]="preferences.emailNotifications">
+                      [ngModel]="preferences().emailNotifications"
+                      (ngModelChange)="updateEmailNotifications($event)">
                     <label for="emailNotifications">Email Notifications</label>
                   </div>
                   <div class="setting-item">
                     <input 
                       type="checkbox" 
                       id="smsNotifications" 
-                      [(ngModel)]="preferences.smsNotifications">
+                      [ngModel]="preferences().smsNotifications"
+                      (ngModelChange)="updateSmsNotifications($event)">
                     <label for="smsNotifications">SMS Notifications</label>
                   </div>
                   <div class="setting-item">
                     <input 
                       type="checkbox" 
                       id="pushNotifications" 
-                      [(ngModel)]="preferences.pushNotifications">
+                      [ngModel]="preferences().pushNotifications"
+                      (ngModelChange)="updatePushNotifications($event)">
                     <label for="pushNotifications">Push Notifications</label>
                   </div>
                 </div>
@@ -171,15 +174,15 @@
             </div>
             
             <div class="form-actions">
-              <button class="btn-primary" (click)="updatePreferences()" [disabled]="loading">
-                {{ loading ? 'Saving...' : 'Save Preferences' }}
+              <button class="btn-primary" (click)="updatePreferences()" [disabled]="loading()">
+                {{ loading() ? 'Saving...' : 'Save Preferences' }}
               </button>
             </div>
           </div>
         </div>
 
         <!-- Security Tab -->
-        <div class="tab-panel" *ngIf="activeTab === 'security'">
+        <div class="tab-panel" *ngIf="activeTab() === 'security'">
           <div class="section-card">
             <h3>Change Password</h3>
             <form [formGroup]="passwordForm" (ngSubmit)="changePassword()">
@@ -211,8 +214,8 @@
               </div>
 
               <div class="form-actions">
-                <button type="submit" class="btn-primary" [disabled]="passwordForm.invalid || loading">
-                  {{ loading ? 'Changing...' : 'Change Password' }}
+                <button type="submit" class="btn-primary" [disabled]="passwordForm.invalid || loading()">
+                  {{ loading() ? 'Changing...' : 'Change Password' }}
                 </button>
               </div>
             </form>

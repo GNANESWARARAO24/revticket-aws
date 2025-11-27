@@ -1,6 +1,6 @@
-import { Injectable } from '@angular/core';
+import { Injectable, signal, computed } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { BehaviorSubject, Observable } from 'rxjs';
+import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
 import { User, LoginRequest, SignupRequest, AuthResponse } from '../models/user.model';
 import { environment } from '../../../environments/environment';
@@ -9,8 +9,10 @@ import { environment } from '../../../environments/environment';
   providedIn: 'root'
 })
 export class AuthService {
-  private currentUserSubject = new BehaviorSubject<User | null>(null);
-  public currentUser$ = this.currentUserSubject.asObservable();
+  private currentUserSignal = signal<User | null>(null);
+  public currentUser = this.currentUserSignal.asReadonly();
+  public isAuthenticated = computed(() => !!this.currentUserSignal());
+  public isAdmin = computed(() => this.currentUserSignal()?.role === 'ADMIN');
 
   constructor(private http: HttpClient) {
     this.loadUserFromStorage();
@@ -37,31 +39,21 @@ export class AuthService {
   logout(): void {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    this.currentUserSubject.next(null);
-  }
-
-  isAuthenticated(): boolean {
-    return !!localStorage.getItem('token');
-  }
-
-  isAdmin(): boolean {
-    const user = this.currentUserSubject.value;
-    return user?.role === 'ADMIN';
+    this.currentUserSignal.set(null);
   }
 
   private setCurrentUser(authResponse: AuthResponse): void {
     try {
       localStorage.setItem('token', authResponse.token);
       localStorage.setItem('user', JSON.stringify(authResponse.user));
-      this.currentUserSubject.next(authResponse.user);
+      this.currentUserSignal.set(authResponse.user);
     } catch (error) {
-      console.error('Error storing user data:', error);
       throw new Error('Failed to store authentication data');
     }
   }
 
   getCurrentUser(): User | null {
-    return this.currentUserSubject.value;
+    return this.currentUserSignal();
   }
 
   forgotPassword(email: string): Observable<any> {
@@ -75,10 +67,9 @@ export class AuthService {
       
       if (token && userStr) {
         const user = JSON.parse(userStr);
-        this.currentUserSubject.next(user);
+        this.currentUserSignal.set(user);
       }
     } catch (error) {
-      console.error('Error loading user from storage:', error);
       this.logout();
     }
   }

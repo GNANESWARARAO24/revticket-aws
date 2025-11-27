@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { BookingDraft, BookingCostBreakdown } from '../../../core/models/booking.model';
@@ -12,8 +12,8 @@ import { BookingService } from '../../../core/services/booking.service';
   styleUrls: ['./booking-summary.component.css']
 })
 export class BookingSummaryComponent implements OnInit {
-  bookingDraft: BookingDraft | null = null;
-  costBreakdown?: BookingCostBreakdown;
+  bookingDraft = signal<BookingDraft | null>(null);
+  costBreakdown = signal<BookingCostBreakdown | undefined>(undefined);
 
   constructor(
     private bookingService: BookingService,
@@ -21,13 +21,14 @@ export class BookingSummaryComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    this.bookingDraft = this.bookingService.getCurrentBooking();
-    if (!this.bookingDraft) {
+    const draft = this.bookingService.getCurrentBooking();
+    this.bookingDraft.set(draft);
+    if (!draft) {
       this.router.navigate(['/user/home']);
       return;
     }
 
-    this.costBreakdown = this.bookingService.calculateCostBreakdown(this.bookingDraft.totalAmount);
+    this.costBreakdown.set(this.bookingService.calculateCostBreakdown(draft.totalAmount));
   }
 
   proceedToPayment(): void {
@@ -35,8 +36,9 @@ export class BookingSummaryComponent implements OnInit {
   }
 
   editSeats(): void {
-    if (this.bookingDraft) {
-      this.router.navigate(['/user/booking', this.bookingDraft.showtimeId]);
+    const draft = this.bookingDraft();
+    if (draft) {
+      this.router.navigate(['/user/booking', draft.showtimeId]);
     }
   }
 }

@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { RouterModule, Router } from '@angular/router';
@@ -13,17 +13,15 @@ import { AlertService } from '../../core/services/alert.service';
   styleUrls: ['./forgot-password.component.css']
 })
 export class ForgotPasswordComponent implements OnInit {
-  forgotPasswordForm!: FormGroup;
-  loading = false;
-  error = '';
-  success = '';
+  private fb = inject(FormBuilder);
+  private authService = inject(AuthService);
+  private alertService = inject(AlertService);
+  private router = inject(Router);
 
-  constructor(
-    private fb: FormBuilder,
-    private authService: AuthService,
-    private alertService: AlertService,
-    private router: Router
-  ) {}
+  forgotPasswordForm!: FormGroup;
+  loading = signal(false);
+  error = signal('');
+  success = signal('');
 
   ngOnInit(): void {
     this.forgotPasswordForm = this.fb.group({
@@ -33,21 +31,21 @@ export class ForgotPasswordComponent implements OnInit {
 
   onSubmit(): void {
     if (this.forgotPasswordForm.valid) {
-      this.loading = true;
-      this.error = '';
-      this.success = '';
+      this.loading.set(true);
+      this.error.set('');
+      this.success.set('');
       
       const email = this.forgotPasswordForm.get('email')?.value;
       
       this.authService.forgotPassword(email).subscribe({
         next: () => {
-          this.success = 'Password reset instructions sent to your email';
+          this.success.set('Password reset instructions sent to your email');
           this.alertService.success('Password reset email sent successfully');
-          this.loading = false;
+          this.loading.set(false);
         },
         error: (error) => {
-          this.error = 'Failed to send reset email. Please try again.';
-          this.loading = false;
+          this.error.set('Failed to send reset email. Please try again.');
+          this.loading.set(false);
         }
       });
     }

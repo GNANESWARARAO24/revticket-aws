@@ -28,7 +28,7 @@ public class PaymentController {
     }
 
     @GetMapping("/{transactionId}/status")
-    public ResponseEntity<Map<String, String>> getPaymentStatus(@PathVariable String transactionId) {
+    public ResponseEntity<Map<String, String>> getPaymentStatus(@PathVariable("transactionId") String transactionId) {
         return paymentService.getPaymentStatus(transactionId)
                 .map(payment -> ResponseEntity.ok(Map.of("status", payment.getStatus().name())))
                 .orElse(ResponseEntity.notFound().build());

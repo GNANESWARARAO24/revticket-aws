@@ -8,25 +8,25 @@
     <div class="filter-tabs">
       <button 
         class="filter-tab" 
-        [class.active]="activeFilter === 'all'"
+        [class.active]="activeFilter() === 'all'"
         (click)="setFilter('all')">
         All Bookings
       </button>
       <button 
         class="filter-tab" 
-        [class.active]="activeFilter === 'upcoming'"
+        [class.active]="activeFilter() === 'upcoming'"
         (click)="setFilter('upcoming')">
         Upcoming
       </button>
       <button 
         class="filter-tab" 
-        [class.active]="activeFilter === 'past'"
+        [class.active]="activeFilter() === 'past'"
         (click)="setFilter('past')">
         Past
       </button>
       <button 
         class="filter-tab" 
-        [class.active]="activeFilter === 'cancelled'"
+        [class.active]="activeFilter() === 'cancelled'"
         (click)="setFilter('cancelled')">
         Cancelled
       </button>
@@ -36,18 +36,17 @@
       <input 
         type="text" 
         placeholder="Search bookings..." 
-        [(ngModel)]="searchTerm"
-        (input)="onSearch()">
+        [(ngModel)]="searchTerm">
       <span class="search-icon">🔍</span>
     </div>
   </div>
 
-  <div class="loading-state" *ngIf="loading">
+  <div class="loading-state" *ngIf="loading()">
     Loading your bookings...
   </div>
 
-  <div class="bookings-list" *ngIf="!loading && filteredBookings.length > 0">
-    <div class="booking-card" *ngFor="let booking of filteredBookings">
+  <div class="bookings-list" *ngIf="!loading() && filteredBookings().length > 0">
+    <div class="booking-card" *ngFor="let booking of filteredBookings()">
       <div class="booking-header">
         <div class="movie-info">
           <img 
@@ -140,20 +139,20 @@
     </div>
   </div>
 
-  <div class="empty-state" *ngIf="!loading && filteredBookings.length === 0">
+  <div class="empty-state" *ngIf="!loading() && filteredBookings().length === 0">
     <div class="empty-icon">🎫</div>
     <h3>No Bookings Found</h3>
     <p>{{ getEmptyStateMessage() }}</p>
-    <button class="btn-primary" routerLink="/user/home" *ngIf="activeFilter === 'all'">
+    <button class="btn-primary" routerLink="/user/home" *ngIf="activeFilter() === 'all'">
       Book Your First Movie
     </button>
   </div>
 
   <!-- E-Ticket Modal -->
-  <div class="modal-overlay" *ngIf="showTicket" (click)="closeTicket()">
+  <div class="modal-overlay" *ngIf="showTicket()" (click)="closeTicket()">
     <div class="modal-content" (click)="$event.stopPropagation()">
       <button class="close-btn" (click)="closeTicket()">×</button>
-      <app-e-ticket [booking]="selectedBooking" *ngIf="selectedBooking"></app-e-ticket>
+      <app-e-ticket [booking]="selectedBooking()!" *ngIf="selectedBooking()"></app-e-ticket>
     </div>
   </div>
 </div>

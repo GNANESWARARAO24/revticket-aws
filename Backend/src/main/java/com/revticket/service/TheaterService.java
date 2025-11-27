@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -30,7 +31,7 @@ public class TheaterService {
 
     @Transactional(readOnly = true)
     public Optional<TheaterResponse> getTheaterById(String id) {
-        return theaterRepository.findById(id).map(this::mapToResponse);
+        return theaterRepository.findById(Objects.requireNonNullElse(id, "")).map(this::mapToResponse);
     }
 
     @Transactional
@@ -42,7 +43,7 @@ public class TheaterService {
 
     @Transactional
     public TheaterResponse updateTheater(String id, TheaterRequest request) {
-        Theater theater = theaterRepository.findById(id)
+        Theater theater = theaterRepository.findById(Objects.requireNonNullElse(id, ""))
                 .orElseThrow(() -> new RuntimeException("Theater not found"));
         applyRequest(theater, request);
         return mapToResponse(theaterRepository.save(theater));
@@ -50,7 +51,7 @@ public class TheaterService {
 
     @Transactional
     public TheaterResponse updateTheaterStatus(String id, boolean isActive) {
-        Theater theater = theaterRepository.findById(id)
+        Theater theater = theaterRepository.findById(Objects.requireNonNullElse(id, ""))
                 .orElseThrow(() -> new RuntimeException("Theater not found"));
         theater.setIsActive(isActive);
         return mapToResponse(theaterRepository.save(theater));
@@ -58,7 +59,7 @@ public class TheaterService {
 
     @Transactional
     public void deleteTheater(String id) {
-        Theater theater = theaterRepository.findById(id)
+        Theater theater = theaterRepository.findById(Objects.requireNonNullElse(id, ""))
                 .orElseThrow(() -> new RuntimeException("Theater not found"));
         theaterRepository.delete(theater);
     }

@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AlertService, Alert } from '../../../core/services/alert.service';
 
@@ -10,9 +10,8 @@ import { AlertService, Alert } from '../../../core/services/alert.service';
   styleUrls: ['./alert.component.css']
 })
 export class AlertComponent {
-  alerts$ = this.alertService.alerts$;
-
-  constructor(private alertService: AlertService) {}
+  private alertService = inject(AlertService);
+  alerts = this.alertService.alerts;
 
   closeAlert(id: string): void {
     this.alertService.removeAlert(id);

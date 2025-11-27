@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MovieService } from '../../../core/services/movie.service';
@@ -16,25 +16,47 @@ import { AlertService } from '../../../core/services/alert.service';
   styleUrls: ['./home.component.css']
 })
 export class HomeComponent implements OnInit {
-  movies: Movie[] = [];
-  filteredMovies: Movie[] = [];
-  loading = true;
-  searchTerm = '';
-  selectedGenre = 'All';
-  genres: string[] = ['All'];
+  private movieService = inject(MovieService);
+  private theaterService = inject(TheaterService);
+  private alertService = inject(AlertService);
+
+  movies = signal<Movie[]>([]);
+  loading = signal(true);
+  searchTerm = signal('');
+  selectedGenre = signal('All');
+  genres = signal<string[]>(['All']);
   
-  // Dynamic stats
-  stats = {
+  stats = signal({
     totalMovies: 0,
     totalTheaters: 0,
     totalCustomers: '1M+'
-  };
+  });
 
-  constructor(
-    private movieService: MovieService,
-    private theaterService: TheaterService,
-    private alertService: AlertService
-  ) {}
+  filteredMovies = computed(() => {
+    const search = this.searchTerm().toLowerCase();
+    const genre = this.selectedGenre();
+    return this.movies().filter(movie => {
+      const matchesSearch = !search || 
+                           movie.title.toLowerCase().includes(search) ||
+                           (movie.genre && movie.genre.some(g => g.toLowerCase().includes(search))) ||
+                           (movie.language && movie.language.toLowerCase().includes(search));
+      
+      const matchesGenre = genre === 'All' || 
+                          (movie.genre && movie.genre.includes(genre));
+      
+      return matchesSearch && matchesGenre;
+    });
+  });
+
+  displayMovieCount = computed(() => {
+    const count = this.stats().totalMovies;
+    return count > 0 ? `${count}+` : '500+';
+  });
+
+  displayTheaterCount = computed(() => {
+    const count = this.stats().totalTheaters;
+    return count > 0 ? `${count}+` : '50+';
+  });
 
   ngOnInit(): void {
     this.loadMovies();
@@ -42,19 +64,18 @@ export class HomeComponent implements OnInit {
   }
 
   loadMovies(): void {
-    this.loading = true;
+    this.loading.set(true);
     this.movieService.getMovies().subscribe({
       next: (movies) => {
-        this.movies = movies.filter(movie => movie.isActive);
-        this.filteredMovies = this.movies;
-        this.stats.totalMovies = this.movies.length;
+        const activeMovies = movies.filter(movie => movie.isActive);
+        this.movies.set(activeMovies);
+        this.stats.update(s => ({ ...s, totalMovies: activeMovies.length }));
         this.extractGenres();
-        this.loading = false;
+        this.loading.set(false);
       },
-      error: (error) => {
-        console.error('Error loading movies:', error);
+      error: () => {
         this.alertService.error('Failed to load movies. Please try again.');
-        this.loading = false;
+        this.loading.set(false);
       }
     });
   }
@@ -62,53 +83,27 @@ export class HomeComponent implements OnInit {
   loadStats(): void {
     this.theaterService.getAllTheaters(false).subscribe({
       next: (theaters) => {
-        this.stats.totalTheaters = theaters.length;
+        this.stats.update(s => ({ ...s, totalTheaters: theaters.length }));
       },
-      error: (error) => {
-        console.error('Error loading theaters:', error);
-      }
+      error: () => {}
     });
   }
 
   extractGenres(): void {
     const allGenres = new Set<string>();
-    this.movies.forEach(movie => {
+    this.movies().forEach(movie => {
       if (movie.genre && Array.isArray(movie.genre)) {
         movie.genre.forEach(genre => allGenres.add(genre));
       }
     });
-    this.genres = ['All', ...Array.from(allGenres).sort()];
+    this.genres.set(['All', ...Array.from(allGenres).sort()]);
   }
 
-  onSearch(): void {
-    this.filterMovies();
+  onSearch(value: string): void {
+    this.searchTerm.set(value);
   }
 
   onGenreFilter(genre: string): void {
-    this.selectedGenre = genre;
-    this.filterMovies();
-  }
-
-  private filterMovies(): void {
-    this.filteredMovies = this.movies.filter(movie => {
-      const searchLower = this.searchTerm.toLowerCase();
-      const matchesSearch = !this.searchTerm || 
-                           movie.title.toLowerCase().includes(searchLower) ||
-                           (movie.genre && movie.genre.some(g => g.toLowerCase().includes(searchLower))) ||
-                           (movie.language && movie.language.toLowerCase().includes(searchLower));
-      
-      const matchesGenre = this.selectedGenre === 'All' || 
-                          (movie.genre && movie.genre.includes(this.selectedGenre));
-      
-      return matchesSearch && matchesGenre;
-    });
-  }
-
-  get displayMovieCount(): string {
-    return this.stats.totalMovies > 0 ? `${this.stats.totalMovies}+` : '500+';
-  }
-
-  get displayTheaterCount(): string {
-    return this.stats.totalTheaters > 0 ? `${this.stats.totalTheaters}+` : '50+';
+    this.selectedGenre.set(genre);
   }
 }

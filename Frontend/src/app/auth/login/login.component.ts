@@ -1,4 +1,4 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, signal, OnInit } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
@@ -23,12 +23,11 @@ export class LoginComponent implements OnInit {
     password: ['', [Validators.required, Validators.minLength(6)]]
   });
 
-  loading = false;
-  error = '';
-  showPassword = false;
+  loading = signal(false);
+  error = signal('');
+  showPassword = signal(false);
 
   ngOnInit(): void {
-    // Redirect if already logged in
     if (this.authService.isAuthenticated()) {
       const user = this.authService.getCurrentUser();
       if (user?.role === 'ADMIN') {
@@ -45,8 +44,8 @@ export class LoginComponent implements OnInit {
       return;
     }
 
-    this.loading = true;
-    this.error = '';
+    this.loading.set(true);
+    this.error.set('');
 
     const credentials = {
       email: this.loginForm.value.email!.trim(),
@@ -55,10 +54,9 @@ export class LoginComponent implements OnInit {
 
     this.authService.login(credentials).subscribe({
       next: (response) => {
-        this.loading = false;
+        this.loading.set(false);
         this.alertService.success('Login successful! Welcome back.');
 
-        // Route based on user role
         if (response.user.role === 'ADMIN') {
           this.router.navigate(['/admin/dashboard']);
         } else {
@@ -66,21 +64,18 @@ export class LoginComponent implements OnInit {
         }
       },
       error: (err) => {
-        this.loading = false;
-        this.error = err.error?.message || 'Invalid email or password. Please try again.';
-        console.error('Login error:', err);
+        this.loading.set(false);
+        this.error.set(err.error?.message || 'Invalid email or password. Please try again.');
       }
     });
   }
 
-  // Helper method to check if field has error
   hasError(fieldName: string, errorType: string): boolean {
     const field = this.loginForm.get(fieldName);
     return !!(field && field.hasError(errorType) && field.touched);
   }
 
-  // Toggle password visibility
   togglePasswordVisibility(): void {
-    this.showPassword = !this.showPassword;
+    this.showPassword.update(v => !v);
   }
 }

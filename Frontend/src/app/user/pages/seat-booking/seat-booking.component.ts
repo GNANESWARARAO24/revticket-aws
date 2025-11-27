@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { SeatSelectorComponent } from '../../components/seat-selector/seat-selector.component';
@@ -16,30 +16,23 @@ import { LoaderComponent } from '../../../shared/components/loader/loader.compon
   styleUrls: ['./seat-booking.component.css']
 })
 export class SeatBookingComponent implements OnInit {
-  showtimeId!: string;
-  showtime: Showtime | null = null;
-  movieInfo: {
-    title: string;
-    posterUrl?: string;
-    rating?: number;
-    duration?: number;
-    genre?: string[];
-    language?: string;
-  } = {
+  showtimeId = signal('');
+  showtime = signal<Showtime | null>(null);
+  movieInfo = signal({
     title: '',
     posterUrl: '',
     rating: 0,
     duration: 0,
-    genre: [],
+    genre: [] as string[],
     language: ''
-  };
-  theaterName = '';
-  theaterLocation = '';
-  selectedSeats: string[] = [];
-  selectedSeatLabels: string[] = [];
-  totalAmount = 0;
-  loading = true;
-  showDateTime: Date | null = null;
+  });
+  theaterName = signal('');
+  theaterLocation = signal('');
+  selectedSeats = signal<string[]>([]);
+  selectedSeatLabels = signal<string[]>([]);
+  totalAmount = signal(0);
+  loading = signal(true);
+  showDateTime = signal<Date | null>(null);
 
   constructor(
     private route: ActivatedRoute,
@@ -50,8 +43,9 @@ export class SeatBookingComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    this.showtimeId = this.route.snapshot.paramMap.get('showtimeId') || '';
-    if (!this.showtimeId) {
+    const id = this.route.snapshot.paramMap.get('showtimeId') || '';
+    this.showtimeId.set(id);
+    if (!id) {
       this.alertService.error('Invalid showtime selected');
       this.router.navigate(['/user/home']);
       return;
@@ -60,40 +54,42 @@ export class SeatBookingComponent implements OnInit {
   }
 
   onSeatsSelected(seats: string[]): void {
-    this.selectedSeats = seats;
+    this.selectedSeats.set(seats);
   }
 
   onSeatLabelsChanged(labels: string[]): void {
-    this.selectedSeatLabels = labels;
+    this.selectedSeatLabels.set(labels);
   }
 
   onTotalAmountChanged(amount: number): void {
-    this.totalAmount = amount;
+    this.totalAmount.set(amount);
   }
 
   proceedToPayment(): void {
-    if (this.selectedSeats.length === 0) {
+    if (this.selectedSeats().length === 0) {
       this.alertService.error('Please select at least one seat to continue.');
       return;
     }
 
-    if (!this.showtime) {
+    const showtime = this.showtime();
+    if (!showtime) {
       this.alertService.error('Showtime information not available.');
       return;
     }
 
+    const movieInfo = this.movieInfo();
     const draft: BookingDraft = {
-      showtimeId: this.showtimeId,
-      showDateTime: this.showtime.showDateTime,
-      movieId: this.showtime.movieId,
-      movieTitle: this.movieInfo.title || 'Movie',
-      moviePosterUrl: this.movieInfo.posterUrl,
-      theaterId: this.showtime.theaterId,
-      theaterName: this.theaterName,
-      theaterLocation: this.theaterLocation,
-      screen: this.showtime.screen,
-      seats: [...this.selectedSeatLabels],
-      totalAmount: this.totalAmount
+      showtimeId: this.showtimeId(),
+      showDateTime: showtime.showDateTime,
+      movieId: showtime.movieId,
+      movieTitle: movieInfo.title || 'Movie',
+      moviePosterUrl: movieInfo.posterUrl,
+      theaterId: showtime.theaterId,
+      theaterName: this.theaterName(),
+      theaterLocation: this.theaterLocation(),
+      screen: showtime.screen,
+      seats: [...this.selectedSeatLabels()],
+      totalAmount: this.totalAmount()
     };
 
     this.bookingService.setCurrentBooking(draft);
@@ -101,22 +97,22 @@ export class SeatBookingComponent implements OnInit {
   }
 
   private loadShowtime(): void {
-    this.loading = true;
-    this.showtimeService.getShowtimeById(this.showtimeId).subscribe({
+    this.loading.set(true);
+    this.showtimeService.getShowtimeById(this.showtimeId()).subscribe({
       next: showtime => {
-        this.showtime = showtime;
-        this.showDateTime = new Date(showtime.showDateTime);
-        this.theaterName = showtime.theater?.name || '';
-        this.theaterLocation = showtime.theater?.location || '';
-        this.movieInfo = {
+        this.showtime.set(showtime);
+        this.showDateTime.set(new Date(showtime.showDateTime));
+        this.theaterName.set(showtime.theater?.name || '');
+        this.theaterLocation.set(showtime.theater?.location || '');
+        this.movieInfo.set({
           title: showtime.movie?.title || '',
-          posterUrl: showtime.movie?.posterUrl,
-          rating: showtime.movie?.rating,
-          duration: showtime.movie?.duration,
+          posterUrl: showtime.movie?.posterUrl || '',
+          rating: showtime.movie?.rating || 0,
+          duration: showtime.movie?.duration || 0,
           genre: showtime.movie?.genre || [],
-          language: showtime.movie?.language
-        };
-        this.loading = false;
+          language: showtime.movie?.language || ''
+        });
+        this.loading.set(false);
       },
       error: () => {
         this.alertService.error('Unable to load showtime details');

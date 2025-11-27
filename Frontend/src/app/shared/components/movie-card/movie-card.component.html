@@ -36,14 +36,16 @@
       </div>
     </div>
     
-    <div class="genre-list" *ngIf="movie.genre && movie.genre.length > 0">
-      <span class="genre-tag" *ngFor="let genre of movie.genre.slice(0, 3)">
-        {{ genre }}
-      </span>
-      <span class="more-tag" *ngIf="movie.genre.length > 3">
-        +{{ movie.genre.length - 3 }}
-      </span>
-    </div>
+    @if (movie.genre && movie.genre.length > 0) {
+      <div class="genre-list">
+        @for (genre of movie.genre.slice(0, 3); track genre) {
+          <span class="genre-tag">{{ genre }}</span>
+        }
+        @if (movie.genre.length > 3) {
+          <span class="more-tag">+{{ movie.genre.length - 3 }}</span>
+        }
+      </div>
+    }
     
     <div class="card-footer">
       <button class="btn btn-outline" (click)="viewShowtimes()">

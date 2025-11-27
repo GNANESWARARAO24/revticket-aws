@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -16,13 +16,13 @@ import { finalize } from 'rxjs/operators';
   styleUrls: ['./payment.component.css']
 })
 export class PaymentComponent implements OnInit {
-  paymentMethod = 'card';
+  paymentMethod = signal('card');
   cardForm: FormGroup;
   upiForm: FormGroup;
   contactForm: FormGroup;
-  processing = false;
-  bookingDraft: BookingDraft | null = null;
-  costBreakdown?: BookingCostBreakdown;
+  processing = signal(false);
+  bookingDraft = signal<BookingDraft | null>(null);
+  costBreakdown = signal<BookingCostBreakdown | undefined>(undefined);
   readonly monthOptions = Array.from({ length: 12 }, (_, i) => i + 1);
   readonly yearOptions = Array.from({ length: 7 }, (_, i) => new Date().getFullYear() + i);
 
@@ -53,13 +53,14 @@ export class PaymentComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.bookingDraft = this.bookingService.getCurrentBooking();
-    if (!this.bookingDraft) {
+    const draft = this.bookingService.getCurrentBooking();
+    this.bookingDraft.set(draft);
+    if (!draft) {
       this.router.navigate(['/user/home']);
       return;
     }
 
-    this.costBreakdown = this.bookingService.calculateCostBreakdown(this.bookingDraft.totalAmount);
+    this.costBreakdown.set(this.bookingService.calculateCostBreakdown(draft.totalAmount));
     const currentUser = this.authService.getCurrentUser();
     if (currentUser) {
       this.contactForm.patchValue({
@@ -71,11 +72,14 @@ export class PaymentComponent implements OnInit {
   }
 
   onPaymentMethodChange(method: string): void {
-    this.paymentMethod = method;
+    this.paymentMethod.set(method);
   }
 
   processPayment(): void {
-    if (!this.bookingDraft || !this.costBreakdown) {
+    const draft = this.bookingDraft();
+    const breakdown = this.costBreakdown();
+    
+    if (!draft || !breakdown) {
       this.alertService.error('Booking information missing.');
       this.router.navigate(['/user/home']);
       return;
@@ -87,10 +91,11 @@ export class PaymentComponent implements OnInit {
     }
 
     let methodValid = false;
-    if (this.paymentMethod === 'card') {
+    const method = this.paymentMethod();
+    if (method === 'card') {
       this.cardForm.markAllAsTouched();
       methodValid = this.cardForm.valid;
-    } else if (this.paymentMethod === 'upi') {
+    } else if (method === 'upi') {
       this.upiForm.markAllAsTouched();
       methodValid = this.upiForm.valid;
     } else {
@@ -103,26 +108,26 @@ export class PaymentComponent implements OnInit {
 
     const contact = this.contactForm.value;
     const bookingRequest: BookingRequest = {
-      movieId: this.bookingDraft.movieId,
-      theaterId: this.bookingDraft.theaterId,
-      showtimeId: this.bookingDraft.showtimeId,
-      showtime: new Date(this.bookingDraft.showDateTime),
-      seats: this.bookingDraft.seats,
-      totalAmount: this.costBreakdown.total,
+      movieId: draft.movieId,
+      theaterId: draft.theaterId,
+      showtimeId: draft.showtimeId,
+      showtime: new Date(draft.showDateTime),
+      seats: draft.seats,
+      totalAmount: breakdown.total,
       customerName: contact.name,
       customerEmail: contact.email,
       customerPhone: contact.phone
     };
 
-    this.processing = true;
+    this.processing.set(true);
     this.bookingService.createBooking(bookingRequest)
-      .pipe(finalize(() => this.processing = false))
+      .pipe(finalize(() => this.processing.set(false)))
       .subscribe({
         next: booking => {
           const confirmation = this.bookingService.buildConfirmationFromDraft(
             booking,
-            this.bookingDraft!,
-            this.costBreakdown!.total
+            draft,
+            breakdown.total
           );
           this.bookingService.setLastConfirmedBooking(confirmation);
           this.bookingService.clearCurrentBooking();

@@ -1,7 +1,5 @@
 package com.revticket.entity;
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
-import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -21,14 +19,12 @@ public class Showtime {
     @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "movie_id", nullable = false)
-    @JsonBackReference
     private Movie movie;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "theater_id", nullable = false)
-    @JsonBackReference("theater-showtimes")
     private Theater theater;
 
     @Column(nullable = false)
@@ -50,11 +46,11 @@ public class Showtime {
     private ShowStatus status = ShowStatus.ACTIVE;
 
     @OneToMany(mappedBy = "showtime", cascade = CascadeType.ALL, orphanRemoval = true)
-    @JsonManagedReference("showtime-seats")
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private List<Seat> seats = new ArrayList<>();
 
     @OneToMany(mappedBy = "showtime", cascade = CascadeType.ALL, orphanRemoval = true)
-    @JsonManagedReference("showtime-bookings")
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private List<Booking> bookings = new ArrayList<>();
 
     public enum ShowStatus {
