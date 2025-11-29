@@ -1,4 +1,4 @@
-import { Injectable, signal, computed } from '@angular/core';
+import { Injectable, signal, computed, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
@@ -9,12 +9,13 @@ import { environment } from '../../../environments/environment';
   providedIn: 'root'
 })
 export class AuthService {
+  private http = inject(HttpClient);
   private currentUserSignal = signal<User | null>(null);
   public currentUser = this.currentUserSignal.asReadonly();
   public isAuthenticated = computed(() => !!this.currentUserSignal());
   public isAdmin = computed(() => this.currentUserSignal()?.role === 'ADMIN');
 
-  constructor(private http: HttpClient) {
+  constructor() {
     this.loadUserFromStorage();
   }
 
@@ -58,6 +59,10 @@ export class AuthService {
 
   forgotPassword(email: string): Observable<any> {
     return this.http.post(`${environment.apiUrl}/auth/forgot-password`, { email });
+  }
+
+  changePassword(data: { currentPassword: string; newPassword: string }): Observable<any> {
+    return this.http.post(`${environment.apiUrl}/auth/change-password`, data);
   }
 
   private loadUserFromStorage(): void {

@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
 import { map, switchMap } from 'rxjs/operators';
@@ -9,7 +9,7 @@ import { environment } from '../../../environments/environment';
   providedIn: 'root'
 })
 export class SeatService {
-  constructor(private http: HttpClient) {}
+  private http = inject(HttpClient);
 
   getSeatLayout(showtimeId: string): Observable<SeatLayout> {
     return this.fetchSeats(showtimeId).pipe(

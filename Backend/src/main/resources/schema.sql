@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS movies (
     description TEXT,
     duration INT NOT NULL,
     rating DOUBLE,
+    director VARCHAR(255),
     release_date DATE NOT NULL,
     poster_url VARCHAR(500),
     trailer_url VARCHAR(500),
@@ -38,6 +39,13 @@ CREATE TABLE IF NOT EXISTS movie_genres (
     PRIMARY KEY (movie_id, genre)
 );
 
+-- Movie crew (many-to-many relationship)
+CREATE TABLE IF NOT EXISTS movie_crew (
+    movie_id VARCHAR(36),
+    crew_member VARCHAR(255),
+    FOREIGN KEY (movie_id) REFERENCES movies(id) ON DELETE CASCADE
+);
+
 -- Theaters table
 CREATE TABLE IF NOT EXISTS theaters (
     id VARCHAR(36) PRIMARY KEY,
@@ -47,6 +55,16 @@ CREATE TABLE IF NOT EXISTS theaters (
     total_screens INT,
     image_url VARCHAR(500),
     is_active BOOLEAN DEFAULT TRUE
+);
+
+-- Screens table
+CREATE TABLE IF NOT EXISTS screens (
+    id VARCHAR(36) PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    total_seats INT NOT NULL,
+    theater_id VARCHAR(36) NOT NULL,
+    is_active BOOLEAN DEFAULT TRUE,
+    FOREIGN KEY (theater_id) REFERENCES theaters(id) ON DELETE CASCADE
 );
 
 -- Showtimes table
@@ -124,8 +142,11 @@ CREATE TABLE IF NOT EXISTS payments (
 CREATE INDEX idx_user_email ON users(email);
 CREATE INDEX idx_showtime_movie ON showtimes(movie_id);
 CREATE INDEX idx_showtime_theater ON showtimes(theater_id);
+CREATE INDEX idx_showtime_screen ON showtimes(screen);
 CREATE INDEX idx_booking_user ON bookings(user_id);
 CREATE INDEX idx_booking_showtime ON bookings(showtime_id);
 CREATE INDEX idx_seat_showtime ON seats(showtime_id);
 CREATE INDEX idx_payment_transaction ON payments(transaction_id);
+CREATE INDEX idx_screens_theater ON screens(theater_id);
+CREATE INDEX idx_screens_active ON screens(is_active);
 

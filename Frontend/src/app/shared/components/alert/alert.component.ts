@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, effect, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AlertService, Alert } from '../../../core/services/alert.service';
 
@@ -10,11 +10,36 @@ import { AlertService, Alert } from '../../../core/services/alert.service';
   styleUrls: ['./alert.component.css']
 })
 export class AlertComponent {
-  private alertService = inject(AlertService);
+  alertService = inject(AlertService);
   alerts = this.alertService.alerts;
+  fadingAlerts = signal<Set<string>>(new Set());
+
+  constructor() {
+    effect(() => {
+      const currentAlerts = this.alerts();
+      currentAlerts.forEach(alert => {
+        if (alert.autoClose) {
+          setTimeout(() => this.startFadeOut(alert.id), 2700);
+        }
+      });
+    });
+  }
+
+  startFadeOut(id: string): void {
+    this.fadingAlerts.update(set => {
+      const newSet = new Set(set);
+      newSet.add(id);
+      return newSet;
+    });
+    setTimeout(() => this.alertService.removeAlert(id), 300);
+  }
 
   closeAlert(id: string): void {
-    this.alertService.removeAlert(id);
+    this.startFadeOut(id);
+  }
+
+  isFading(id: string): boolean {
+    return this.fadingAlerts().has(id);
   }
 
   getIcon(type: string): string {

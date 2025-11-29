@@ -1,0 +1,72 @@
+<div class="bookings-container">
+  <div class="bookings-header">
+    <div>
+      <h1>Manage Bookings</h1>
+      <p>View and manage all movie bookings</p>
+    </div>
+    <div class="header-actions">
+      <input type="text" placeholder="Search bookings..." (input)="searchBookings($any($event.target).value)" class="search-input">
+      <select (change)="filterByStatus($any($event.target).value)" class="filter-select">
+        <option value="ALL">All Status</option>
+        <option value="CONFIRMED">Confirmed</option>
+        <option value="CANCELLED">Cancelled</option>
+        <option value="PENDING">Pending</option>
+      </select>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="loading-state">
+      <div class="spinner"></div>
+      <p>Loading bookings...</p>
+    </div>
+  } @else if (filteredBookings().length === 0) {
+    <div class="empty-state">
+      <p>No bookings found</p>
+    </div>
+  } @else {
+    <div class="bookings-grid">
+      @for (booking of filteredBookings(); track booking.id) {
+        <div class="booking-card">
+          <div class="booking-header">
+            <span class="booking-id">{{ booking.bookingId || booking.id }}</span>
+            <span class="status-badge" [class]="booking.status?.toLowerCase()">
+              {{ booking.status }}
+            </span>
+          </div>
+          <div class="booking-details">
+            <div class="detail-row">
+              <span class="label">Movie:</span>
+              <span class="value">{{ booking.movieTitle }}</span>
+            </div>
+            <div class="detail-row">
+              <span class="label">User:</span>
+              <span class="value">{{ booking.userName || 'N/A' }}</span>
+            </div>
+            <div class="detail-row">
+              <span class="label">Theatre:</span>
+              <span class="value">{{ booking.theaterName || 'N/A' }}</span>
+            </div>
+            <div class="detail-row">
+              <span class="label">Seats:</span>
+              <span class="value">{{ booking.seats?.join(', ') || 'N/A' }}</span>
+            </div>
+            <div class="detail-row">
+              <span class="label">Amount:</span>
+              <span class="value amount">{{ formatCurrency(booking.totalAmount || 0) }}</span>
+            </div>
+            <div class="detail-row">
+              <span class="label">Date:</span>
+              <span class="value">{{ booking.bookingDate | date: 'medium' }}</span>
+            </div>
+          </div>
+          @if (booking.status === 'CONFIRMED') {
+            <button class="btn-cancel" (click)="cancelBooking(booking.id)">
+              Cancel Booking
+            </button>
+          }
+        </div>
+      }
+    </div>
+  }
+</div>

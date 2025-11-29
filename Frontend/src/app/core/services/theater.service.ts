@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
@@ -13,11 +13,18 @@ export interface Theater {
   isActive: boolean;
 }
 
+export interface Screen {
+  id: string;
+  name: string;
+  totalSeats: number;
+  theaterId: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
 export class TheaterService {
-  constructor(private http: HttpClient) {}
+  private http = inject(HttpClient);
 
   getAllTheaters(activeOnly: boolean = true): Observable<Theater[]> {
     let params = new HttpParams();
@@ -32,20 +39,32 @@ export class TheaterService {
   }
 
   createTheater(theater: Partial<Theater>): Observable<Theater> {
-    return this.http.post<Theater>(`${environment.apiUrl}/theaters`, theater);
+    return this.http.post<Theater>(`${environment.apiUrl}/admin/theaters`, theater);
   }
 
   updateTheater(id: string, theater: Partial<Theater>): Observable<Theater> {
-    return this.http.put<Theater>(`${environment.apiUrl}/theaters/${id}`, theater);
+    return this.http.put<Theater>(`${environment.apiUrl}/admin/theaters/${id}`, theater);
   }
 
   updateTheaterStatus(id: string, isActive: boolean): Observable<Theater> {
     const params = new HttpParams().set('active', String(isActive));
-    return this.http.patch<Theater>(`${environment.apiUrl}/theaters/${id}/status`, null, { params });
+    return this.http.patch<Theater>(`${environment.apiUrl}/admin/theaters/${id}/status`, null, { params });
   }
 
   deleteTheater(id: string): Observable<void> {
-    return this.http.delete<void>(`${environment.apiUrl}/theaters/${id}`);
+    return this.http.delete<void>(`${environment.apiUrl}/admin/theaters/${id}`);
+  }
+
+  getTheaterScreens(theaterId: string): Observable<Screen[]> {
+    return this.http.get<Screen[]>(`${environment.apiUrl}/admin/theaters/${theaterId}/screens`);
+  }
+
+  getAdminTheaters(activeOnly: boolean = false): Observable<Theater[]> {
+    let params = new HttpParams();
+    if (activeOnly) {
+      params = params.set('activeOnly', 'true');
+    }
+    return this.http.get<Theater[]>(`${environment.apiUrl}/admin/theaters`, { params });
   }
 }
 

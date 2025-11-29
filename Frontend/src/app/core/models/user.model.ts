@@ -11,7 +11,22 @@ export interface User {
   emailNotifications?: boolean;
   smsNotifications?: boolean;
   pushNotifications?: boolean;
+  isActive?: boolean;
+  status?: 'ACTIVE' | 'BLOCKED';
+  lastLogin?: Date;
   createdAt: Date;
+  profileImage?: string;
+}
+
+export interface UserBooking {
+  id: string;
+  movieTitle: string;
+  theaterName: string;
+  showDate: string;
+  showTime: string;
+  totalAmount: number;
+  status: string;
+  bookingDate: Date;
 }
 
 export interface LoginRequest {

@@ -16,7 +16,7 @@ export const userRoutes: Routes = [
   { path: 'movie/:id/:slug/showtimes', component: ShowtimesComponent, canActivate: [authGuard] },
   { path: 'movie/:id/showtimes', redirectTo: 'movie/:id/movie/showtimes', pathMatch: 'full' },
   { path: 'movie/:id', redirectTo: 'movie/:id/movie', pathMatch: 'full' },
-  { path: 'booking/:showtimeId', component: SeatBookingComponent, canActivate: [authGuard] },
+  { path: 'seat-booking', component: SeatBookingComponent, canActivate: [authGuard] },
   { path: 'payment', component: PaymentComponent, canActivate: [authGuard] },
   { path: 'success/:bookingId', component: BookingSuccessComponent, canActivate: [authGuard] },
   { path: 'my-bookings', component: MyBookingsComponent, canActivate: [authGuard] },

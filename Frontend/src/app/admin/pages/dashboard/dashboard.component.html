@@ -1,202 +1,166 @@
-<div class="dashboard-container">
-  <div class="admin-page-header">
-    <div class="admin-header-background"></div>
-    <div class="admin-header-content">
-      <div class="admin-header-text">
-        <h1>📊 Dashboard Overview</h1>
-        <p>Welcome back, Admin! Here's what's happening with RevTicket today.</p>
+<div class="dashboard-page">
+  <!-- HEADER -->
+    <header class="main-header">
+      <div class="header-left">
+        <h1 class="page-title">Dashboard Overview</h1>
+        <p class="page-sub">Real-time analytics and insights</p>
       </div>
-      <div class="admin-header-actions">
-        <button class="btn-refresh" (click)="refreshData()" [disabled]="loading()">
-          <span class="icon" [class.spinning]="loading()">🔄</span>
+
+      <div class="header-actions">
+        <button class="refresh-btn" (click)="refreshData()" [disabled]="loading()" title="Refresh Data">
+          <span [class.spin]="loading()">🔄</span>
           <span>{{ loading() ? 'Loading...' : 'Refresh' }}</span>
         </button>
       </div>
-    </div>
-  </div>
+    </header>
 
-  @if (!loading()) {
-    <div class="stats-grid">
-    <div class="stat-card revenue">
-      <div class="stat-card-inner">
-        <div class="stat-icon">💰</div>
-        <div class="stat-content">
-          <p class="stat-label">Total Revenue</p>
-          <h3 class="stat-value">{{ formatCurrency(stats().totalRevenue) }}</h3>
-          <div class="stat-change" [class.positive]="getRevenueChange().isPositive"
-            [class.negative]="!getRevenueChange().isPositive">
-            <span class="change-icon">{{ getRevenueChange().isPositive ? '📈' : '📉' }}</span>
-            <span class="change-text">{{ getRevenueChange().isPositive ? '+' : '-' }}{{ getRevenueChange().value |
-              number:'1.1-1' }}% from last period</span>
-          </div>
-        </div>
+    <!-- STATS ROW -->
+    @if (!loading()) {
+    <section class="stats-row fade-in">
+      <div class="stat-card">
+        <div class="stat-meta">Total Revenue</div>
+        <div class="stat-value">{{ formatCurrency(stats().totalRevenue) }}</div>
       </div>
-    </div>
 
-    <div class="stat-card bookings">
-      <div class="stat-card-inner">
-        <div class="stat-icon">🎫</div>
-        <div class="stat-content">
-          <p class="stat-label">Total Bookings</p>
-          <h3 class="stat-value">{{ stats().totalBookings }}</h3>
-          <div class="stat-change" [class.positive]="getBookingsChange().isPositive">
-            <span class="change-icon">📈</span>
-            <span class="change-text">+{{ getBookingsChange().value }}% from last week</span>
-          </div>
-        </div>
+      <div class="stat-card">
+        <div class="stat-meta">Total Bookings</div>
+        <div class="stat-value">{{ stats().totalBookings }}</div>
       </div>
-    </div>
 
-    <div class="stat-card movies">
-      <div class="stat-card-inner">
-        <div class="stat-icon">🎬</div>
-        <div class="stat-content">
-          <p class="stat-label">Active Movies</p>
-          <h3 class="stat-value">{{ stats().activeMovies }}</h3>
-          <div class="stat-change neutral">
-            <span class="change-icon">➡️</span>
-            <span class="change-text">Out of {{ stats().totalMovies }} total</span>
-          </div>
-        </div>
+      <div class="stat-card">
+        <div class="stat-meta">Active Movies</div>
+        <div class="stat-value">{{ stats().activeMovies }}</div>
       </div>
-    </div>
 
-    <div class="stat-card users">
-      <div class="stat-card-inner">
-        <div class="stat-icon">👥</div>
-        <div class="stat-content">
-          <p class="stat-label">Total Users</p>
-          <h3 class="stat-value">{{ stats().totalUsers }}</h3>
-          <div class="stat-change" [class.positive]="getUsersChange().isPositive">
-            <span class="change-icon">📈</span>
-            <span class="change-text">+{{ getUsersChange().value }}% new users</span>
-          </div>
-        </div>
+      <div class="stat-card">
+        <div class="stat-meta">Total Users</div>
+        <div class="stat-value">{{ stats().totalUsers }}</div>
       </div>
-    </div>
-    </div>
-  }
+    </section>
+    }
 
-  @if (loading()) {
-    <div class="loading-state">
-    <div class="spinner"></div>
+    <!-- LOADING STATE -->
+    @if (loading()) {
+    <section class="loading-state">
+      <div class="spinner"></div>
       <p>Loading dashboard data...</p>
-    </div>
-  }
+    </section>
+    }
 
-  @if (!loading()) {
-    <div class="dashboard-grid">
-    <div class="chart-section">
-      <div class="section-card revenue-card">
-        <div class="card-header">
-          <div class="header-left">
-            <h3 class="card-title">📈 Revenue Analytics</h3>
-            <p class="card-subtitle">Track your daily revenue performance</p>
-          </div>
-          <div class="card-actions">
-            <button class="filter-btn" [class.active]="selectedPeriod() === 7" (click)="onPeriodChange(7)">
-              Last 7 Days
+    <!-- MAIN GRID: Revenue Chart + Quick Actions -->
+    @if (!loading()) {
+    <section class="grid-main fade-in">
+      <!-- Revenue Chart Panel -->
+      <div class="panel chart-panel">
+        <div class="panel-header">
+          <h3 class="panel-title">📈 Revenue Analytics</h3>
+          <div class="period-controls">
+            <button class="period-btn" [class.active]="selectedPeriod() === 7" (click)="onPeriodChange(7)">
+              7d
+            </button>
+            <button class="period-btn" [class.active]="selectedPeriod() === 30" (click)="onPeriodChange(30)">
+              30d
+            </button>
+            <button class="period-btn" [class.active]="selectedPeriod() === 180" (click)="onPeriodChange(180)">
+              6m
+            </button>
+            <button class="period-btn" [class.active]="selectedPeriod() === 365" (click)="onPeriodChange(365)">
+              1y
             </button>
           </div>
         </div>
-        <div class="chart-container">
+
+        <div class="panel-body">
           @if (revenueData().length > 0) {
-            <div class="chart-wrapper">
-              <div class="chart-bars">
-                @for (data of revenueData(); track data.date) {
-                  <div class="bar-wrapper">
-                    <div class="bar-tooltip">{{ formatCurrency(data.revenue) }}</div>
-                    <div class="bar" [style.height]="getBarHeight(data.revenue)">
-                      <div class="bar-fill"></div>
-                    </div>
-                    <span class="bar-label">{{ data.date | date:'EEE' }}</span>
-                  </div>
-                }
+          <div class="chart-container">
+            <div class="chart-bars">
+              @for (data of revenueData(); track data.date) {
+              <div class="bar-wrap">
+                <div class="bar" [style.height]="getBarHeight(data.revenue)">
+                  <div class="bar-fill"></div>
+                  <div class="bar-tooltip">{{ formatCurrency(data.revenue) }}</div>
+                </div>
+                <div class="bar-label">{{ getBarLabel(data.date) }}</div>
               </div>
+              }
             </div>
+          </div>
           } @else {
-            <div class="chart-empty">
-              <div class="empty-icon">📊</div>
-              <p>No revenue data available</p>
-              <span>Data will appear once bookings are made</span>
-            </div>
+          <div class="empty-state">No revenue data available</div>
           }
         </div>
       </div>
-    </div>
 
-    <div class="quick-actions">
-      <div class="section-card">
-        <div class="card-header">
-          <h3 class="card-title">⚡ Quick Actions</h3>
+      <!-- Quick Actions Panel -->
+      <aside class="panel actions-panel">
+        <div class="panel-header">
+          <h3 class="panel-title">⚡ Quick Actions</h3>
         </div>
-        <div class="actions-grid">
-          <a routerLink="/admin/add-movie" class="quick-action-btn">
-            <div class="action-icon">🎬</div>
-            <div class="action-content">
-              <h4>Add Movie</h4>
-              <p>Add new movie to catalog</p>
-            </div>
+        <div class="panel-body quick-links">
+          <a routerLink="/admin/add-movie" class="quick-link">
+            🎬 Add Movie
           </a>
-          <a routerLink="/admin/manage-shows" class="quick-action-btn">
-            <div class="action-icon">📅</div>
-            <div class="action-content">
-              <h4>Manage Shows</h4>
-              <p>Schedule new showtimes</p>
-            </div>
+          <a routerLink="/admin/manage-shows" class="quick-link">
+            📅 Add Show
           </a>
-          <a routerLink="/admin/manage-theatres" class="quick-action-btn">
-            <div class="action-icon">🏢</div>
-            <div class="action-content">
-              <h4>Add Theatre</h4>
-              <p>Register new theatre</p>
-            </div>
+          <a routerLink="/admin/manage-theatres" class="quick-link">
+            🏢 Add Theatre
           </a>
-          <a routerLink="/admin/bookings-report" class="quick-action-btn">
-            <div class="action-icon">📊</div>
-            <div class="action-content">
-              <h4>View Reports</h4>
-              <p>Booking analytics</p>
-            </div>
+          <a routerLink="/admin/users" class="quick-link">
+            👥 Manage Users
           </a>
         </div>
-      </div>
-    </div>
-    </div>
-  }
+      </aside>
+    </section>
+    }
 
-  @if (!loading()) {
-    <div class="recent-activity">
-      <div class="section-card">
-      <div class="card-header">
-        <h3 class="card-title">🕐 Recent Activity</h3>
-        <button class="view-all-btn" (click)="loadRecentActivities()">Refresh</button>
-      </div>
-      @if (recentActivities().length > 0) {
-        <div class="activity-list">
-          @for (activity of recentActivities(); track activity.timestamp) {
+    <!-- RECENT ACTIVITY SECTION -->
+    @if (!loading()) {
+    <section class="recent-activity-section fade-in">
+      <div class="panel">
+        <div class="panel-header">
+          <h3 class="panel-title">🕐 Recent Activity</h3>
+          <button class="refresh-small-btn" (click)="loadRecentActivities()" title="Refresh Activity">
+            🔄
+          </button>
+        </div>
+
+        <div class="panel-body">
+          @if (recentActivities().length > 0) {
+          <div class="activity-list">
+            @for (act of recentActivities(); track act.timestamp) {
             <div class="activity-item">
-              <div class="activity-icon" [class]="activity.type">
-                @switch (activity.type) {
-                  @case ('booking') { <span>🎫</span> }
-                  @case ('movie') { <span>🎬</span> }
-                  @case ('user') { <span>👤</span> }
-                  @case ('theater') { <span>🏢</span> }
+              <div class="activity-icon">
+                @switch (act.type) {
+                @case ('booking') {
+                🎫
+                }
+                @case ('movie') {
+                🎬
+                }
+                @case ('user') {
+                👤
+                }
+                @case ('theater') {
+                🏢
+                }
+                @default {
+                📌
+                }
                 }
               </div>
               <div class="activity-content">
-                <p class="activity-text" [innerHTML]="activity.message"></p>
-                <span class="activity-time">{{ getTimeAgo(activity.timestamp) }}</span>
+                <div class="activity-message" [innerHTML]="act.message"></div>
+                <small class="activity-time">{{ getTimeAgo(act.timestamp) }}</small>
               </div>
             </div>
+            }
+          </div>
+          } @else {
+          <div class="empty-state">No recent activity</div>
           }
         </div>
-      } @else {
-        <div class="empty-activity">
-          <p>No recent activity</p>
-        </div>
-      }
       </div>
-    </div>
-  }
+    </section>
+    }
 </div>

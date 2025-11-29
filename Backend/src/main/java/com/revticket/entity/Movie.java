@@ -33,7 +33,14 @@ public class Movie {
     @Column(nullable = false)
     private Integer duration; // in minutes
 
-    private Double rating;
+    private Double rating; // Rating like 4.5, 3.0, etc.
+
+    private String director;
+
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "movie_crew", joinColumns = @JoinColumn(name = "movie_id"))
+    @Column(name = "crew_member")
+    private List<String> crew = new ArrayList<>();
 
     @Column(nullable = false)
     private LocalDate releaseDate;

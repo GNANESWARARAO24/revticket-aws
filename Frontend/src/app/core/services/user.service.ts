@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, timeout, catchError, throwError } from 'rxjs';
 import { User } from '../models/user.model';
@@ -13,7 +13,7 @@ export interface PasswordChangeRequest {
   providedIn: 'root'
 })
 export class UserService {
-  constructor(private http: HttpClient) {}
+  private http = inject(HttpClient);
 
   getUserProfile(): Observable<User> {
     return this.http.get<User>(`${environment.apiUrl}/users/profile`).pipe(
@@ -38,5 +38,13 @@ export class UserService {
 
   changePassword(request: PasswordChangeRequest): Observable<string> {
     return this.http.put(`${environment.apiUrl}/users/change-password`, request, { responseType: 'text' });
+  }
+
+  updateUser(userId: string, userData: Partial<User>): Observable<User> {
+    return this.http.put<User>(`${environment.apiUrl}/users/${userId}`, userData);
+  }
+
+  deleteUser(userId: string): Observable<void> {
+    return this.http.delete<void>(`${environment.apiUrl}/users/${userId}`);
   }
 }

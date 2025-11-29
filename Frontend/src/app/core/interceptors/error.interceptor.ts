@@ -10,18 +10,18 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
     catchError((error: HttpErrorResponse) => {
       let errorMessage = 'An unknown error occurred';
 
-      if (error.error instanceof ErrorEvent) {
-        // Client-side error
+      if (error.status === 0) {
+        errorMessage = 'Backend is not reachable. Please ensure Spring Boot server is running on http://localhost:8080';
+        console.error('Connection refused - Backend server is offline');
+      } else if (error.error instanceof ErrorEvent) {
         errorMessage = `Error: ${error.error.message}`;
       } else {
-        // Server-side error
         switch (error.status) {
           case 400:
             errorMessage = error.error?.message || 'Bad request';
             break;
           case 401:
             errorMessage = 'Unauthorized. Please login again.';
-            // Optionally redirect to login
             break;
           case 403:
             errorMessage = 'Access forbidden';
@@ -37,10 +37,8 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
         }
       }
 
-      // Show error alert
-      if (alertService) {
-        alertService.error(errorMessage);
-      }
+      console.error('HTTP Error:', { status: error.status, message: errorMessage, url: error.url });
+      alertService.error(errorMessage);
 
       return throwError(() => error);
     })

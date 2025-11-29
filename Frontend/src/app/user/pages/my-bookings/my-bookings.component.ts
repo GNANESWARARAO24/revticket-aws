@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, computed } from '@angular/core';
+import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -59,10 +59,8 @@ export class MyBookingsComponent implements OnInit {
     return filtered;
   });
 
-  constructor(
-    private alertService: AlertService,
-    private bookingService: BookingService
-  ) {}
+  private alertService = inject(AlertService);
+  private bookingService = inject(BookingService);
 
   onImageError(event: any): void {
     event.target.src = 'assets/images/movies/default-poster.png';

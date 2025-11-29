@@ -144,6 +144,23 @@ public class ShowtimeService {
         );
     }
 
+    public boolean checkShowtimeConflict(String screenId, LocalDateTime showDateTime, String excludeShowId) {
+        // Check if there's any showtime on the same screen within 3 hours window
+        LocalDateTime startWindow = showDateTime.minusHours(3);
+        LocalDateTime endWindow = showDateTime.plusHours(3);
+        
+        List<Showtime> conflictingShows = showtimeRepository.findByScreenAndShowDateTimeBetween(
+                screenId, startWindow, endWindow);
+        
+        if (excludeShowId != null) {
+            conflictingShows = conflictingShows.stream()
+                    .filter(show -> !show.getId().equals(excludeShowId))
+                    .collect(Collectors.toList());
+        }
+        
+        return !conflictingShows.isEmpty();
+    }
+
     private ShowtimeResponse mapToResponse(Showtime showtime) {
         Movie movie = showtime.getMovie();
         Theater theater = showtime.getTheater();

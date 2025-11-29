@@ -103,7 +103,7 @@ This guide will help you run both the Angular Frontend and Spring Boot Backend.
    ```typescript
    export const environment = {
      production: false,
-     apiUrl: "http://localhost:8080/api", // Should point to Spring Boot
+     apiUrl: "http://localhost:8080/api",
    };
    ```
 

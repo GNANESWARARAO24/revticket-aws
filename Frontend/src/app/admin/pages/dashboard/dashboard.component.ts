@@ -17,6 +17,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private adminService = inject(AdminService);
   private alertService = inject(AlertService);
 
+  // --- Existing signals (unchanged) ---
   stats = signal<DashboardStats>({
     totalMovies: 0,
     totalBookings: 0,
@@ -37,8 +38,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.loadDashboardData();
-    
-    // Auto-refresh every 30 seconds
+
     this.refreshInterval
       .pipe(takeUntil(this.destroy$))
       .subscribe(() => {
@@ -51,6 +51,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 
+  // keep all existing methods exactly as they were
   loadDashboardData(showLoading: boolean = true): void {
     if (showLoading) {
       this.loading.set(true);
@@ -71,13 +72,47 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   loadRevenueData(): void {
-    this.adminService.getRevenueData(this.selectedPeriod()).subscribe({
+    const period = this.selectedPeriod();
+    this.adminService.getRevenueData(period).subscribe({
       next: (data) => {
-        this.revenueData.set(data);
-        this.updateChart();
+        const grouped = this.groupRevenueData(data, period);
+        this.revenueData.set(grouped);
       },
       error: () => {}
     });
+  }
+
+  groupRevenueData(data: RevenueData[], period: number): RevenueData[] {
+    if (period === 7) return data;
+    if (period === 30 || period === 180) return this.groupByWeeks(data);
+    if (period === 365) return this.groupByMonths(data);
+    return data;
+  }
+
+  groupByWeeks(data: RevenueData[]): RevenueData[] {
+    const weeks = new Map<string, number>();
+    data.forEach(item => {
+      const date = new Date(item.date);
+      const weekStart = new Date(date);
+      weekStart.setDate(date.getDate() - date.getDay());
+      const weekKey = weekStart.toISOString().split('T')[0];
+      weeks.set(weekKey, (weeks.get(weekKey) || 0) + item.revenue);
+    });
+    return Array.from(weeks.entries())
+      .map(([date, revenue]) => ({ date, revenue }))
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  }
+
+  groupByMonths(data: RevenueData[]): RevenueData[] {
+    const months = new Map<string, number>();
+    data.forEach(item => {
+      const date = new Date(item.date);
+      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-01`;
+      months.set(monthKey, (months.get(monthKey) || 0) + item.revenue);
+    });
+    return Array.from(months.entries())
+      .map(([date, revenue]) => ({ date, revenue }))
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   }
 
   loadRecentActivities(): void {
@@ -87,10 +122,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
       },
       error: () => {}
     });
-  }
-
-  updateChart(): void {
-    // Chart will be updated via data binding
   }
 
   onPeriodChange(period: number): void {
@@ -110,7 +141,23 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   getBarHeight(revenue: number): string {
     const max = this.getMaxRevenue();
-    return `${(revenue / max) * 100}%`;
+    const percentage = max > 0 ? (revenue / max) * 100 : 0;
+    return `${Math.max(percentage, 2)}%`;
+  }
+
+  getBarLabel(dateStr: string): string {
+    const date = new Date(dateStr);
+    const period = this.selectedPeriod();
+    
+    if (period === 7) {
+      return date.toLocaleDateString('en-US', { weekday: 'short' });
+    } else if (period === 30 || period === 180) {
+      const index = this.revenueData().findIndex(d => d.date === dateStr);
+      return `W${index + 1}`;
+    } else if (period === 365) {
+      return date.toLocaleDateString('en-US', { month: 'short' });
+    }
+    return dateStr;
   }
 
   formatCurrency(amount: number): string {
@@ -139,14 +186,14 @@ export class DashboardComponent implements OnInit, OnDestroy {
     if (data.length < 2) {
       return { value: 0, isPositive: true };
     }
-    
+
     const current = data[data.length - 1]?.revenue || 0;
     const previous = data[data.length - 2]?.revenue || 0;
-    
+
     if (previous === 0) {
       return { value: 0, isPositive: true };
     }
-    
+
     const change = ((current - previous) / previous) * 100;
     return {
       value: Math.abs(change),
@@ -160,7 +207,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   getUsersChange(): { value: number; isPositive: boolean } {
-    // Simplified - in production, compare with previous period
     return { value: 15.3, isPositive: true };
   }
 }

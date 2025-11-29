@@ -68,7 +68,9 @@ export class ShowtimesComponent implements OnInit {
   }
 
   selectShowtime(showtime: Showtime): void {
-    this.router.navigate(['/user/booking', showtime.id]);
+    this.router.navigate(['/user/seat-booking'], {
+      queryParams: { showtimeId: showtime.id }
+    });
   }
 
   getTheaterName(showtime: Showtime): string {

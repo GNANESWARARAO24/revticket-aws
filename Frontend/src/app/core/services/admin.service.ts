@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, forkJoin, map } from 'rxjs';
 import { environment } from '../../../environments/environment';
@@ -34,14 +34,12 @@ export interface RecentActivity {
   providedIn: 'root'
 })
 export class AdminService {
-  constructor(
-    private http: HttpClient,
-    private movieService: MovieService,
-    private bookingService: BookingService,
-    private userService: UserService,
-    private theaterService: TheaterService,
-    private showtimeService: ShowtimeService
-  ) {}
+  private http = inject(HttpClient);
+  private movieService = inject(MovieService);
+  private bookingService = inject(BookingService);
+  private userService = inject(UserService);
+  private theaterService = inject(TheaterService);
+  private showtimeService = inject(ShowtimeService);
 
   getDashboardStats(): Observable<DashboardStats> {
     return forkJoin({
@@ -81,28 +79,52 @@ export class AdminService {
     return this.bookingService.getAllBookings().pipe(
       map(bookings => {
         const confirmedBookings = bookings.filter(b => b.status === 'CONFIRMED');
-        const revenueMap = new Map<string, number>();
         const today = new Date();
+        today.setHours(0, 0, 0, 0);
         
-        // Initialize last N days
-        for (let i = days - 1; i >= 0; i--) {
-          const date = new Date(today);
-          date.setDate(date.getDate() - i);
-          const dateStr = date.toISOString().split('T')[0];
-          revenueMap.set(dateStr, 0);
+        let periods: Date[] = [];
+        
+        if (days === 7 || days === 30 || days === 180) {
+          for (let i = days - 1; i >= 0; i--) {
+            const date = new Date(today);
+            date.setDate(date.getDate() - i);
+            periods.push(date);
+          }
+        } else if (days === 365) {
+          for (let i = 11; i >= 0; i--) {
+            const date = new Date(today);
+            date.setMonth(date.getMonth() - i);
+            date.setDate(1);
+            periods.push(date);
+          }
         }
 
-        // Calculate revenue per day
-        confirmedBookings.forEach(booking => {
-          const bookingDate = new Date(booking.bookingDate);
-          const dateStr = bookingDate.toISOString().split('T')[0];
-          const current = revenueMap.get(dateStr) || 0;
-          revenueMap.set(dateStr, current + (booking.totalAmount || 0));
+        const revenueMap = new Map<string, number>();
+        periods.forEach(date => {
+          const dateStr = date.toISOString().split('T')[0];
+          revenueMap.set(dateStr, 0);
         });
 
-        return Array.from(revenueMap.entries()).map(([date, revenue]) => ({
-          date,
-          revenue
+        confirmedBookings.forEach(booking => {
+          const bookingDate = new Date(booking.bookingDate);
+          bookingDate.setHours(0, 0, 0, 0);
+          
+          if (days === 7 || days === 30 || days === 180) {
+            const dateStr = bookingDate.toISOString().split('T')[0];
+            if (revenueMap.has(dateStr)) {
+              revenueMap.set(dateStr, revenueMap.get(dateStr)! + (booking.totalAmount || 0));
+            }
+          } else if (days === 365) {
+            const monthKey = `${bookingDate.getFullYear()}-${String(bookingDate.getMonth() + 1).padStart(2, '0')}-01`;
+            if (revenueMap.has(monthKey)) {
+              revenueMap.set(monthKey, revenueMap.get(monthKey)! + (booking.totalAmount || 0));
+            }
+          }
+        });
+
+        return periods.map(date => ({
+          date: date.toISOString().split('T')[0],
+          revenue: revenueMap.get(date.toISOString().split('T')[0]) || 0
         }));
       })
     );

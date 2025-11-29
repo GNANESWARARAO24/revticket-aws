@@ -13,12 +13,13 @@ export interface Alert {
 export class AlertService {
   private alertsSignal = signal<Alert[]>([]);
   public alerts = this.alertsSignal.asReadonly();
+  private alertCounter = 0;
 
   success(message: string, autoClose = true): void {
     this.addAlert('success', message, autoClose);
   }
 
-  error(message: string, autoClose = false): void {
+  error(message: string, autoClose = true): void {
     this.addAlert('error', message, autoClose);
   }
 
@@ -32,7 +33,7 @@ export class AlertService {
 
   private addAlert(type: Alert['type'], message: string, autoClose: boolean): void {
     const alert: Alert = {
-      id: Date.now().toString(),
+      id: `${Date.now()}-${++this.alertCounter}`,
       type,
       message,
       autoClose
@@ -41,7 +42,7 @@ export class AlertService {
     this.alertsSignal.update(alerts => [...alerts, alert]);
 
     if (autoClose) {
-      setTimeout(() => this.removeAlert(alert.id), 5000);
+      setTimeout(() => this.removeAlert(alert.id), 3000);
     }
   }
 

@@ -1,5 +1,7 @@
-import { Component } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
+import { Component, inject } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { Router, RouterOutlet, NavigationEnd } from '@angular/router';
+import { filter } from 'rxjs/operators';
 import { NavbarComponent } from './shared/components/navbar/navbar.component';
 import { FooterComponent } from './shared/components/footer/footer.component';
 import { AlertComponent } from './shared/components/alert/alert.component';
@@ -7,15 +9,29 @@ import { AlertComponent } from './shared/components/alert/alert.component';
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, NavbarComponent, FooterComponent, AlertComponent],
+  imports: [CommonModule, RouterOutlet, NavbarComponent, FooterComponent, AlertComponent],
   template: `
-    <app-navbar></app-navbar>
+    @if (!isAdminRoute) {
+      <app-navbar></app-navbar>
+    }
     <router-outlet></router-outlet>
-    <app-footer></app-footer>
+    @if (!isAdminRoute) {
+      <app-footer></app-footer>
+    }
     <app-alert></app-alert>
   `,
   styles: []
 })
 export class AppComponent {
   title = 'RevTicket';
+  isAdminRoute = false;
+  private router = inject(Router);
+
+  constructor() {
+    this.router.events
+      .pipe(filter(event => event instanceof NavigationEnd))
+      .subscribe((event: any) => {
+        this.isAdminRoute = event.url.startsWith('/admin');
+      });
+  }
 }

@@ -1,55 +1,94 @@
-<div class="manage-theatres-container">
-  <div class="admin-page-header">
-    <div class="admin-header-background"></div>
-    <div class="admin-header-content">
-      <div class="admin-header-text">
-        <h1>Manage Theatres</h1>
-        <p>View and manage all theatres in your system</p>
-      </div>
-      <div class="admin-header-actions">
-        <button class="btn-primary" (click)="addTheatre()">Add Theatre</button>
-      </div>
+<div class="manage-theatres-page">
+  <!-- Header -->
+  <header class="page-header">
+    <div class="header-left">
+      <h1 class="page-title">Manage Theatres</h1>
+      <p class="page-subtitle">View and manage all theatres in your system</p>
     </div>
-  </div>
+    <div class="header-actions">
+      <button class="btn-primary" (click)="addTheatre()">
+        <span>+</span>
+        <span>Add Theatre</span>
+      </button>
+    </div>
+  </header>
 
-  <div class="theatre-form" *ngIf="showForm()">
+  <!-- Filters Section -->
+  <section class="filters-section">
+    <div class="search-box">
+      <span class="search-icon">🔍</span>
+      <input type="text" placeholder="Search theatres..." [value]="searchTerm()"
+        (input)="onSearchChange($any($event).target.value)">
+    </div>
+
+    <select [value]="selectedCity()" (change)="onCityChange($any($event).target.value)" class="filter-select">
+      <option value="">All Cities</option>
+      @for (city of cities(); track $index) {
+      <option [value]="city">{{ city }}</option>
+      }
+    </select>
+
+    <select [value]="selectedStatus()" (change)="onStatusChange($any($event).target.value)" class="filter-select">
+      <option value="">All Status</option>
+      <option value="active">Active</option>
+      <option value="inactive">Inactive</option>
+    </select>
+  </section>
+
+  <!-- Add/Edit Form Modal -->
+  @if (showForm()) {
+  <div class="form-overlay" (click)="cancelForm()"></div>
+  <div class="form-modal" (click)="$event.stopPropagation()">
     <div class="form-header">
       <h3>{{ editingTheatreId() ? 'Edit Theatre' : 'Add New Theatre' }}</h3>
       <button type="button" class="close-btn" (click)="cancelForm()">×</button>
     </div>
-    <form [formGroup]="theatreForm" (ngSubmit)="submitTheatre()">
+
+    <form [formGroup]="theatreForm" (ngSubmit)="submitTheatre()" class="theatre-form">
       <div class="form-row">
         <div class="form-group" [class.invalid]="isInvalid('name')">
           <label for="name">Theatre Name *</label>
           <input type="text" id="name" formControlName="name" class="form-control" placeholder="e.g., PVR Icon">
-          <small class="form-error" *ngIf="isInvalid('name')">Name is required</small>
+          @if (isInvalid('name')) {
+          <small class="form-error">Name is required (max 120 characters)</small>
+          }
         </div>
+
         <div class="form-group" [class.invalid]="isInvalid('location')">
-          <label for="location">Location *</label>
-          <input type="text" id="location" formControlName="location" class="form-control" placeholder="City or Area">
-          <small class="form-error" *ngIf="isInvalid('location')">Location is required</small>
+          <label for="location">City / Location *</label>
+          <input type="text" id="location" formControlName="location" class="form-control"
+            placeholder="e.g., Mumbai, Delhi">
+          @if (isInvalid('location')) {
+          <small class="form-error">Location is required</small>
+          }
         </div>
       </div>
 
       <div class="form-group" [class.invalid]="isInvalid('address')">
         <label for="address">Address *</label>
-        <textarea id="address" formControlName="address" class="form-control" rows="3" placeholder="Full address"></textarea>
-        <small class="form-error" *ngIf="isInvalid('address')">Address is required</small>
+        <textarea id="address" formControlName="address" class="form-control" rows="3"
+          placeholder="Full address of the theatre"></textarea>
+        @if (isInvalid('address')) {
+        <small class="form-error">Address is required</small>
+        }
       </div>
 
       <div class="form-row">
         <div class="form-group" [class.invalid]="isInvalid('totalScreens')">
           <label for="totalScreens">Total Screens *</label>
           <input type="number" id="totalScreens" formControlName="totalScreens" class="form-control" min="1">
-          <small class="form-error" *ngIf="isInvalid('totalScreens')">Provide at least one screen</small>
+          @if (isInvalid('totalScreens')) {
+          <small class="form-error">Provide at least one screen</small>
+          }
         </div>
+
         <div class="form-group" [class.invalid]="isInvalid('imageUrl')">
           <label for="imageUrl">Image URL</label>
-          <input type="url" id="imageUrl" formControlName="imageUrl" class="form-control" placeholder="https://">
+          <input type="url" id="imageUrl" formControlName="imageUrl" class="form-control" placeholder="https://...">
         </div>
       </div>
 
-      <div class="form-group status-select">
+      <div class="form-group">
         <label for="isActive">Status</label>
         <select id="isActive" formControlName="isActive" class="form-control">
           <option [ngValue]="true">Active</option>
@@ -58,50 +97,91 @@
       </div>
 
       <div class="form-actions">
-        <button type="button" class="btn-secondary" (click)="cancelForm()" [disabled]="submitting()">Cancel</button>
+        <button type="button" class="btn-secondary" (click)="cancelForm()" [disabled]="submitting()">
+          Cancel
+        </button>
         <button type="submit" class="btn-primary" [disabled]="theatreForm.invalid || submitting()">
           {{ submitting() ? 'Saving...' : (editingTheatreId() ? 'Update Theatre' : 'Add Theatre') }}
         </button>
       </div>
     </form>
   </div>
+  }
 
-  <div class="loading-state" *ngIf="loading()">
+  <!-- Loading State -->
+  @if (loading()) {
+  <div class="loading-state">
     <div class="spinner"></div>
-    <p>Loading theaters...</p>
+    <p>Loading theatres...</p>
   </div>
+  }
 
-  <div class="theatres-list" *ngIf="!loading() && theatres().length">
-    <div class="theatre-card" *ngFor="let theatre of theatres(); trackBy: trackByTheatreId">
-      <div class="theatre-image">
-        <img [src]="theatre.imageUrl || 'assets/images/theaters/PVR.png'" [alt]="theatre.name" class="theatre-img"
-             (error)="onImageError($event, theatre)">
+  <!-- Theatres List -->
+  @if (!loading() && filteredTheatres().length > 0) {
+  <div class="theatres-table">
+    <!-- Table Header -->
+    <div class="table-header">
+      <div class="col-name">Theatre Name</div>
+      <div class="col-location">City / Location</div>
+      <div class="col-screens">Screens</div>
+      <div class="col-status">Status</div>
+      <div class="col-actions">Actions</div>
+    </div>
+
+    <!-- Table Rows -->
+    @for (theatre of filteredTheatres(); track trackByTheatreId($index, theatre)) {
+    <div class="table-row">
+      <div class="col-name">
+        <div class="theatre-title">{{ theatre.name }}</div>
+        <div class="theatre-address">{{ theatre.address }}</div>
       </div>
-      <div class="theatre-info">
-        <h4>{{ theatre.name }}</h4>
-        <p class="location">📍 {{ theatre.location }}</p>
-        <p class="address">{{ theatre.address }}</p>
-        <p class="screens">🎬 {{ theatre.totalScreens }} Screens</p>
+
+      <div class="col-location">{{ theatre.location }}</div>
+
+      <div class="col-screens">
+        <span class="screen-badge">{{ theatre.totalScreens }} Screens</span>
       </div>
-      <div class="theatre-actions">
-        <span class="status" [class.active]="theatre.isActive" [class.inactive]="!theatre.isActive">
-          {{ theatre.isActive ? 'Active' : 'Inactive' }}
+
+      <div class="col-status">
+        <span class="status-pill" [class.active]="theatre.isActive" [class.inactive]="!theatre.isActive">
+          {{ theatre.isActive ? '● Active' : '● Inactive' }}
         </span>
-        <button class="btn-edit" (click)="editTheatre(theatre)">Edit</button>
-        <button class="btn-toggle" (click)="toggleStatus(theatre)" [disabled]="statusUpdatingId() === theatre.id">
-          {{ theatre.isActive ? 'Deactivate' : 'Activate' }}
+      </div>
+
+      <div class="col-actions">
+        <button class="action-btn screens" (click)="viewScreens(theatre.id)" title="View Screens">
+          🎬
         </button>
-        <button class="btn-danger" (click)="deleteTheatre(theatre)" [disabled]="deletingId() === theatre.id">
-          Delete
+        <button class="action-btn edit" (click)="editTheatre(theatre)" title="Edit">
+          ✏️
+        </button>
+        <button class="action-btn toggle" (click)="toggleStatus(theatre)" [disabled]="statusUpdatingId() === theatre.id"
+          [title]="theatre.isActive ? 'Deactivate' : 'Activate'">
+          {{ theatre.isActive ? '🚫' : '✓' }}
+        </button>
+        <button class="action-btn delete" (click)="deleteTheatre(theatre)" [disabled]="deletingId() === theatre.id"
+          title="Delete">
+          🗑️
         </button>
       </div>
     </div>
+    }
   </div>
+  }
 
-  <div class="empty-state" *ngIf="!loading() && !theatres().length">
+  <!-- Empty State -->
+  @if (!loading() && filteredTheatres().length === 0) {
+  <div class="empty-state">
     <div class="empty-icon">🎭</div>
-    <h3>No theaters yet</h3>
-    <p>Add your first theater to start scheduling showtimes.</p>
-    <button class="btn-primary" (click)="addTheatre()">Create Theater</button>
+    <h3>No Theatres Found</h3>
+    <p>{{ searchTerm() || selectedCity() || selectedStatus() ? 'Try adjusting your filters' : 'Add your first theatre to
+      get started' }}</p>
+    @if (!searchTerm() && !selectedCity() && !selectedStatus()) {
+    <button class="btn-primary" (click)="addTheatre()">
+      <span>+</span>
+      <span>Add Theatre</span>
+    </button>
+    }
   </div>
+  }
 </div>

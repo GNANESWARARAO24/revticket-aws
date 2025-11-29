@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
@@ -15,10 +15,9 @@ import { environment } from '../../../environments/environment';
   providedIn: 'root'
 })
 export class BookingService {
+  private http = inject(HttpClient);
   private bookingDraft: BookingDraft | null = null;
   private bookingConfirmation: BookingConfirmation | null = null;
-
-  constructor(private http: HttpClient) {}
 
   createBooking(bookingData: BookingRequest): Observable<Booking> {
     return this.http

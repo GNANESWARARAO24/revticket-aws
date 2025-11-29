@@ -1,6 +1,7 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 
 export interface Showtime {
@@ -26,14 +27,23 @@ export interface Showtime {
     id: string;
     name: string;
     location?: string;
+    address?: string;
+    totalScreens?: number;
   };
+}
+
+export interface Screen {
+  id: string;
+  name: string;
+  totalSeats: number;
+  theaterId: string;
 }
 
 @Injectable({
   providedIn: 'root'
 })
 export class ShowtimeService {
-  constructor(private http: HttpClient) {}
+  private http = inject(HttpClient);
 
   getShowtimes(filters?: { movieId?: string; theaterId?: string; date?: string }): Observable<Showtime[]> {
     let params = new HttpParams();
@@ -71,6 +81,35 @@ export class ShowtimeService {
 
   deleteShowtime(id: string): Observable<void> {
     return this.http.delete<void>(`${environment.apiUrl}/showtimes/${id}`);
+  }
+
+  getAllShowtimes(): Observable<Showtime[]> {
+    return this.getShowtimes();
+  }
+
+  getAdminShowtimes(filters?: { movieId?: string; theaterId?: string; date?: string }): Observable<Showtime[]> {
+    let params = new HttpParams();
+    if (filters?.movieId) {
+      params = params.set('movieId', filters.movieId);
+    }
+    if (filters?.theaterId) {
+      params = params.set('theaterId', filters.theaterId);
+    }
+    if (filters?.date) {
+      params = params.set('date', filters.date);
+    }
+    return this.http.get<Showtime[]>(`${environment.apiUrl}/admin/showtimes`, { params });
+  }
+
+  checkConflict(screenId: string, showDateTime: string, excludeShowId?: string): Observable<boolean> {
+    let params = new HttpParams()
+      .set('screenId', screenId)
+      .set('showDateTime', showDateTime);
+    if (excludeShowId) {
+      params = params.set('excludeShowId', excludeShowId);
+    }
+    return this.http.get<{ conflict: boolean }>(`${environment.apiUrl}/admin/showtimes/check-conflict`, { params })
+      .pipe(map(response => response.conflict));
   }
 }
 

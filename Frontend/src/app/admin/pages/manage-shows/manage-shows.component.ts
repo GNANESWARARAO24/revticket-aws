@@ -1,10 +1,10 @@
-import { Component, OnInit, signal, computed } from '@angular/core';
+import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { forkJoin } from 'rxjs';
 import { finalize } from 'rxjs/operators';
-import { ShowtimeService, Showtime } from '../../../core/services/showtime.service';
+import { ShowtimeService, Showtime, Screen } from '../../../core/services/showtime.service';
 import { MovieService } from '../../../core/services/movie.service';
 import { TheaterService, Theater } from '../../../core/services/theater.service';
 import { AlertService } from '../../../core/services/alert.service';
@@ -23,12 +23,15 @@ interface ShowtimeForm {
   movieId: string;
   theaterId: string;
   screen: string;
+  screenId: string;
   showDateTime: string;
   ticketPrice: number | null;
   totalSeats: number | null;
   status: Showtime['status'];
   seatLayout: SeatSection[];
   useCustomLayout: boolean;
+  language: string;
+  format: string;
 }
 
 @Component({
@@ -42,6 +45,12 @@ export class ManageShowsComponent implements OnInit {
   shows = signal<Showtime[]>([]);
   movies = signal<Movie[]>([]);
   theaters = signal<Theater[]>([]);
+  screens = signal<Screen[]>([]);
+  availableScreens = computed(() => {
+    const theaterId = this.newShow.theaterId;
+    if (!theaterId) return [];
+    return this.screens().filter(s => s.theaterId === theaterId);
+  });
 
   searchTerm = signal('');
   selectedMovieId = signal('');
@@ -90,12 +99,10 @@ export class ManageShowsComponent implements OnInit {
 
   newShow: ShowtimeForm = this.getEmptyForm();
 
-  constructor(
-    private showtimeService: ShowtimeService,
-    private movieService: MovieService,
-    private theaterService: TheaterService,
-    private alertService: AlertService
-  ) {}
+  private showtimeService = inject(ShowtimeService);
+  private movieService = inject(MovieService);
+  private theaterService = inject(TheaterService);
+  private alertService = inject(AlertService);
 
   ngOnInit(): void {
     this.loadData();
@@ -106,30 +113,33 @@ export class ManageShowsComponent implements OnInit {
       movieId: '',
       theaterId: '',
       screen: '',
+      screenId: '',
       showDateTime: '',
       ticketPrice: null,
       totalSeats: null,
       status: 'ACTIVE',
       seatLayout: [],
-      useCustomLayout: false
+      useCustomLayout: false,
+      language: 'English',
+      format: '2D'
     };
   }
 
   loadData(): void {
     this.loading.set(true);
     forkJoin({
-      movies: this.movieService.getMovies(),
-      theaters: this.theaterService.getAllTheaters(false),
-      showtimes: this.showtimeService.getShowtimes()
+      movies: this.movieService.getAdminMovies(),
+      theaters: this.theaterService.getAdminTheaters(false),
+      showtimes: this.showtimeService.getAdminShowtimes()
     })
       .pipe(finalize(() => this.loading.set(false)))
       .subscribe({
         next: ({ movies, theaters, showtimes }) => {
           this.movies.set(movies || []);
           this.theaters.set(theaters || []);
-          this.shows.set((showtimes || []).map(s => this.mapShowtimeToView(s)));
+          this.shows.set((showtimes || []).map((s: Showtime) => this.mapShowtimeToView(s)));
         },
-        error: (err) => {
+        error: (err: any) => {
           console.error('Load data error:', err);
           this.alertService.error('Failed to load movies, theaters, or showtimes.');
           this.movies.set([]);
@@ -141,13 +151,13 @@ export class ManageShowsComponent implements OnInit {
 
   private reloadShowtimes(): void {
     this.loading.set(true);
-    this.showtimeService.getShowtimes()
+    this.showtimeService.getAdminShowtimes()
       .pipe(finalize(() => this.loading.set(false)))
       .subscribe({
-        next: (showtimes) => {
-          this.shows.set((showtimes || []).map(s => this.mapShowtimeToView(s)));
+        next: (showtimes: Showtime[]) => {
+          this.shows.set((showtimes || []).map((s: Showtime) => this.mapShowtimeToView(s)));
         },
-        error: (err) => {
+        error: (err: any) => {
           console.error('Reload showtimes error:', err);
           this.alertService.error('Unable to refresh showtimes.');
         }
@@ -237,8 +247,18 @@ export class ManageShowsComponent implements OnInit {
   }
 
   validateForm(): boolean {
-    if (!this.newShow.movieId || !this.newShow.theaterId || !this.newShow.screen.trim()) {
-      this.alertService.error('Movie, theater, and screen are required.');
+    if (!this.newShow.movieId) {
+      this.alertService.error('Please select a movie.');
+      return false;
+    }
+
+    if (!this.newShow.theaterId) {
+      this.alertService.error('Please select a theater.');
+      return false;
+    }
+
+    if (!this.newShow.screenId || !this.newShow.screen.trim()) {
+      this.alertService.error('Please select a screen.');
       return false;
     }
 
@@ -247,8 +267,18 @@ export class ManageShowsComponent implements OnInit {
       return false;
     }
 
+    if (!this.newShow.language) {
+      this.alertService.error('Please select a language.');
+      return false;
+    }
+
+    if (!this.newShow.format) {
+      this.alertService.error('Please select a format.');
+      return false;
+    }
+
     const ticketPrice = Number(this.newShow.ticketPrice);
-    const totalSeats = Number(this.newShow.totalSeats);
+    const totalSeats = this.newShow.useCustomLayout ? this.calculateTotalSeats() : Number(this.newShow.totalSeats);
 
     if (!Number.isFinite(ticketPrice) || ticketPrice <= 0) {
       this.alertService.error('Ticket price must be greater than 0.');
@@ -279,13 +309,18 @@ export class ManageShowsComponent implements OnInit {
       movieId: show.movieId,
       theaterId: show.theaterId,
       screen: show.screen,
+      screenId: '',
       showDateTime: this.toLocalDateTimeInput(show.showDateTime),
       ticketPrice: show.ticketPrice,
       totalSeats: show.totalSeats,
       status: show.status,
       seatLayout: [],
-      useCustomLayout: false
+      useCustomLayout: false,
+      language: (show.movie?.language || 'English'),
+      format: '2D'
     };
+
+    this.loadTheaterScreens(show.theaterId);
   }
 
   viewBookings(show: Showtime): void {
@@ -345,7 +380,8 @@ export class ManageShowsComponent implements OnInit {
           genre: movie.genre,
           duration: movie.duration,
           rating: movie.rating,
-          posterUrl: movie.posterUrl
+          posterUrl: movie.posterUrl,
+          language: movie.language
         }
       : {
           id: movieId,
@@ -353,7 +389,8 @@ export class ManageShowsComponent implements OnInit {
           genre: [],
           duration: 0,
           rating: 0,
-          posterUrl: 'assets/images/movies/default-poster.png'
+          posterUrl: 'assets/images/movies/default-poster.png',
+          language: 'English'
         };
   }
 
@@ -373,5 +410,45 @@ export class ManageShowsComponent implements OnInit {
 
   onImageError(event: Event): void {
     (event.target as HTMLImageElement).src = 'assets/images/movies/default-poster.png';
+  }
+
+  onTheaterChange(): void {
+    this.newShow.screenId = '';
+    this.newShow.screen = '';
+    if (this.newShow.theaterId) {
+      this.loadTheaterScreens(this.newShow.theaterId);
+    } else {
+      this.screens.set([]);
+    }
+  }
+
+  onScreenChange(): void {
+    const screen = this.screens().find(s => s.id === this.newShow.screenId);
+    if (screen) {
+      this.newShow.screen = screen.name;
+      if (!this.newShow.useCustomLayout && !this.newShow.totalSeats) {
+        this.newShow.totalSeats = screen.totalSeats;
+      }
+    }
+  }
+
+  private loadTheaterScreens(theaterId: string): void {
+    this.theaterService.getTheaterScreens(theaterId).subscribe({
+      next: (screens: Screen[]) => {
+        this.screens.set(screens || []);
+      },
+      error: (err: any) => {
+        console.error('Failed to load screens:', err);
+        this.screens.set([]);
+      }
+    });
+  }
+
+  trackById(index: number, item: any): string {
+    return item?.id || index.toString();
+  }
+
+  trackByIndex(index: number): number {
+    return index;
   }
 }

@@ -1,4 +1,4 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router, RouterModule, ActivatedRoute } from '@angular/router';
@@ -14,6 +14,12 @@ import { Movie } from '../../../core/models/movie.model';
   styleUrls: ['./add-movie.component.css']
 })
 export class AddMovieComponent implements OnInit {
+  private fb = inject(FormBuilder);
+  private router = inject(Router);
+  private route = inject(ActivatedRoute);
+  private movieService = inject(MovieService);
+  private alertService = inject(AlertService);
+
   movieForm: FormGroup;
   isEditMode = signal(false);
   editingMovieId = signal<string | null>(null);
@@ -22,18 +28,14 @@ export class AddMovieComponent implements OnInit {
 
   genreOptions = ['Action', 'Adventure', 'Comedy', 'Drama', 'Horror', 'Romance', 'Sci-Fi', 'Thriller', 'Fantasy', 'Animation'];
 
-  constructor(
-    private fb: FormBuilder, 
-    private router: Router,
-    private route: ActivatedRoute,
-    private movieService: MovieService,
-    private alertService: AlertService
-  ) {
+  constructor() {
     this.movieForm = this.fb.group({
       title: ['', [Validators.required, Validators.minLength(2)]],
       description: ['', [Validators.required, Validators.minLength(10)]],
       duration: ['', [Validators.required, Validators.min(1)]],
       rating: ['', [Validators.required, Validators.min(0), Validators.max(10)]],
+      director: [''],
+      crew: [''],
       genre: ['', Validators.required],
       language: ['English', Validators.required],
       releaseDate: ['', Validators.required],
@@ -64,6 +66,8 @@ export class AddMovieComponent implements OnInit {
           description: movie.description || '',
           duration: movie.duration,
           rating: movie.rating,
+          director: movie.director || '',
+          crew: Array.isArray(movie.crew) ? movie.crew.join(', ') : '',
           genre: Array.isArray(movie.genre) ? movie.genre.join(', ') : movie.genre || '',
           language: movie.language || 'English',
           releaseDate: movie.releaseDate ? new Date(movie.releaseDate).toISOString().split('T')[0] : '',
@@ -89,12 +93,19 @@ export class AddMovieComponent implements OnInit {
       const genreArray = formValue.genre
         ? formValue.genre.split(',').map((g: string) => g.trim()).filter((g: string) => g.length > 0)
         : [];
+      
+      // Convert crew string to array
+      const crewArray = formValue.crew
+        ? formValue.crew.split(',').map((c: string) => c.trim()).filter((c: string) => c.length > 0)
+        : [];
 
       const movieData: Partial<Movie> = {
         title: formValue.title,
         description: formValue.description,
         duration: parseInt(formValue.duration),
         rating: parseFloat(formValue.rating),
+        director: formValue.director || undefined,
+        crew: crewArray.length > 0 ? crewArray : undefined,
         genre: genreArray,
         language: formValue.language,
         releaseDate: new Date(formValue.releaseDate),

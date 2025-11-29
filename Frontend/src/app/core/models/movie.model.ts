@@ -5,11 +5,15 @@ export interface Movie {
   genre: string[];
   duration: number;
   rating: number;
+  director?: string;
+  crew?: string[];
   releaseDate: Date;
   posterUrl: string;
   trailerUrl?: string;
   language: string;
   isActive: boolean;
+  totalShows?: number;
+  totalBookings?: number;
 }
 
 export interface Showtime {
