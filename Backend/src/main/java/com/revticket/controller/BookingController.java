@@ -92,5 +92,17 @@ public class BookingController {
             @RequestBody List<String> newSeats) {
         return ResponseEntity.ok(bookingService.resignBooking(id, newSeats));
     }
+
+    @GetMapping("/verify/{id}")
+    public ResponseEntity<?> verifyTicket(@PathVariable("id") String id) {
+        return bookingService.getBookingById(id)
+                .map(booking -> {
+                    if (booking.getStatus().toString().equals("CANCELLED")) {
+                        return ResponseEntity.badRequest().body("Ticket has been cancelled");
+                    }
+                    return ResponseEntity.ok(booking);
+                })
+                .orElse(ResponseEntity.notFound().build());
+    }
 }
 

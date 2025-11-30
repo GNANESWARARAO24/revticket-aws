@@ -42,39 +42,77 @@
     @for (booking of filteredBookings(); track booking.id) {
     <div class="booking-card">
       <div class="card-header">
-        <span class="booking-id">{{ booking.bookingId || booking.id }}</span>
+        <span class="booking-id">{{ booking.ticketNumber || booking.id }}</span>
         <span class="status-pill" 
               [class.confirmed]="booking.status === 'CONFIRMED'"
               [class.cancelled]="booking.status === 'CANCELLED'"
-              [class.pending]="booking.status === 'PENDING'">
-          {{ booking.status }}
+              [class.pending]="booking.status === 'PENDING'"
+              [class.cancellation_requested]="booking.status === 'CANCELLATION_REQUESTED'">
+          {{ booking.status.replace('_', ' ') }}
         </span>
       </div>
 
-      <div class="card-details">
-        <div class="detail-row">
-          <span class="detail-label">🎬 Movie</span>
-          <span class="detail-value">{{ booking.movieTitle }}</span>
+      <div class="card-content">
+        <div class="poster-section">
+          <img [src]="booking.moviePosterUrl || 'assets/placeholder-movie.jpg'" 
+               [alt]="booking.movieTitle" 
+               class="movie-poster">
         </div>
-        <div class="detail-row">
-          <span class="detail-label">👤 User</span>
-          <span class="detail-value">{{ booking.userName || 'N/A' }}</span>
-        </div>
-        <div class="detail-row">
-          <span class="detail-label">🏢 Theatre</span>
-          <span class="detail-value">{{ booking.theaterName || 'N/A' }}</span>
-        </div>
-        <div class="detail-row">
-          <span class="detail-label">💺 Seats</span>
-          <span class="detail-value">{{ booking.seats?.join(', ') || 'N/A' }}</span>
-        </div>
-        <div class="detail-row">
-          <span class="detail-label">💰 Amount</span>
-          <span class="detail-value amount">{{ formatCurrency(booking.totalAmount || 0) }}</span>
-        </div>
-        <div class="detail-row">
-          <span class="detail-label">📅 Date</span>
-          <span class="detail-value">{{ booking.bookingDate | date: 'medium' }}</span>
+
+        <div class="details-section">
+          <div class="card-details">
+            <div class="detail-row">
+              <span class="detail-label">🎬 Movie</span>
+              <span class="detail-value">{{ booking.movieTitle }}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">🏢 Theatre</span>
+              <span class="detail-value">{{ booking.theaterName }}{{ booking.theaterLocation ? ' - ' + booking.theaterLocation : '' }}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">📺 Screen</span>
+              <span class="detail-value">{{ booking.screen || 'N/A' }}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">📅 Show Time</span>
+              <span class="detail-value">{{ booking.showtime | date: 'medium' }}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">💺 Seats</span>
+              <span class="detail-value seats-container">
+                @for (seat of booking.seatLabels || booking.seats; track seat) {
+                  <span class="seat-badge">{{ seat }}</span>
+                }
+                @if (!booking.seatLabels?.length && !booking.seats?.length) {
+                  <span>N/A</span>
+                }
+              </span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">💰 Amount</span>
+              <span class="detail-value amount">{{ formatCurrency(booking.totalAmount || 0) }}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">📆 Booked</span>
+              <span class="detail-value">{{ booking.bookingDate | date: 'medium' }}</span>
+            </div>
+          </div>
+
+          <div class="user-info">
+            <div class="user-info-title">👤 Customer Details</div>
+            <div class="user-info-row">
+              <span class="user-label">Name:</span>
+              <span class="user-value">{{ booking.customerName }}</span>
+            </div>
+            <div class="user-info-row">
+              <span class="user-label">Email:</span>
+              <span class="user-value">{{ booking.customerEmail }}</span>
+            </div>
+            <div class="user-info-row">
+              <span class="user-label">Phone:</span>
+              <span class="user-value">{{ booking.customerPhone }}</span>
+            </div>
+          </div>
         </div>
       </div>
 

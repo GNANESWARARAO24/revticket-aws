@@ -48,9 +48,12 @@ export class MovieDetailsComponent implements OnInit {
 
   ngOnInit(): void {
     window.scrollTo(0, 0);
-    const slug = this.route.snapshot.paramMap.get('slug');
-    if (slug) {
-      this.loadMovieBySlug(slug);
+    const id = this.route.snapshot.paramMap.get('id');
+    
+    if (id) {
+      this.loadMovie(id);
+    } else {
+      this.router.navigate(['/user/home']);
     }
   }
 
@@ -65,7 +68,7 @@ export class MovieDetailsComponent implements OnInit {
   bookTickets(): void {
     const movie = this.movie();
     if (movie) {
-      this.router.navigate(['/user/movies', this.getSlug(), 'showtimes']);
+      this.router.navigate(['/user/showtimes', movie.id]);
     }
   }
 
@@ -77,6 +80,7 @@ export class MovieDetailsComponent implements OnInit {
     this.movieService.getMovieById(movieId).subscribe({
       next: (movie) => {
         this.movie.set(movie);
+        this.loadShowtimes(movie.id);
         this.loading.set(false);
       },
       error: () => {

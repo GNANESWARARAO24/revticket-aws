@@ -50,9 +50,13 @@ export class BookingsComponent implements OnInit {
     if (this.searchTerm()) {
       const term = this.searchTerm().toLowerCase();
       filtered = filtered.filter(b =>
+        b.id?.toLowerCase().includes(term) ||
+        b.ticketNumber?.toLowerCase().includes(term) ||
         b.movieTitle?.toLowerCase().includes(term) ||
-        b.userName?.toLowerCase().includes(term) ||
-        b.bookingId?.toLowerCase().includes(term)
+        b.customerName?.toLowerCase().includes(term) ||
+        b.customerEmail?.toLowerCase().includes(term) ||
+        b.customerPhone?.toLowerCase().includes(term) ||
+        b.theaterName?.toLowerCase().includes(term)
       );
     }
 

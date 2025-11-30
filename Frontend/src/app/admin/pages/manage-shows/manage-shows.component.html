@@ -23,8 +23,8 @@
           <th>Theater</th>
           <th>Screen</th>
           <th>Show Time</th>
-          <th>Price</th>
-          <th>Seats</th>
+          <!-- <th>Price</th>
+          <th>Seats</th> -->
           <th>Status</th>
           <th>Actions</th>
         </tr>
@@ -35,8 +35,8 @@
           <td>{{ show.theater?.name || 'N/A' }}</td>
           <td>{{ getScreenName(show.screen) }}</td>
           <td>{{ show.showDateTime | date:'short' }}</td>
-          <td>₹{{ show.ticketPrice }}</td>
-          <td>{{ show.availableSeats }}/{{ show.totalSeats }}</td>
+          <!-- <td>₹{{ show.ticketPrice }}</td>
+          <td>{{ show.availableSeats }}/{{ show.totalSeats }}</td> -->
           <td>
             <span class="status-badge" [class.active]="show.status === 'ACTIVE'">
               {{ show.status }}
@@ -53,10 +53,10 @@
 
   <div *ngIf="showForm()" class="show-form">
     <h3>{{ editingShowId() ? 'Edit Show' : 'Add New Show' }}</h3>
-    
+
     <div class="form-section">
       <h4>Basic Information</h4>
-      
+
       <div class="form-group">
         <label>Movie *</label>
         <select [(ngModel)]="selectedMovieId" required>
@@ -87,7 +87,8 @@
             {{ screen.name }} ({{ screen.totalSeats }} seats)
           </option>
         </select>
-        <small *ngIf="selectedTheaterId && screens().length === 0" class="hint">No screens available for this theater.</small>
+        <small *ngIf="selectedTheaterId && screens().length === 0" class="hint">No screens available for this
+          theater.</small>
       </div>
 
       <div class="form-group">
@@ -98,7 +99,7 @@
 
     <div *ngIf="selectedScreenId" class="seat-configuration">
       <h4>Seat Configuration</h4>
-      
+
       <div class="categories-legend">
         <div *ngFor="let cat of categories()" class="category-item">
           <span class="color-box" [style.background-color]="cat.color"></span>
@@ -127,7 +128,7 @@
         <div class="seat-grid-header">
           <p><strong>Instructions:</strong> Select a category for each row, then click seats to disable them.</p>
         </div>
-        
+
         <div class="seat-grid">
           <div *ngFor="let rowIndex of getRowIndices(); let i = index; trackBy: trackByIndex" class="seat-row">
             <div class="row-label">{{ getRowLabel(i) }}</div>
@@ -138,11 +139,9 @@
               </select>
             </div>
             <div class="seats">
-              <div *ngFor="let seat of getSeatsForRow(i)" 
-                   class="seat" 
-                   [style.background-color]="getSeatBackground(seat)"
-                   (click)="toggleSeatDisabled(seat)"
-                   [title]="seat.label + (seat.disabled ? ' (Disabled)' : '')">
+              <div *ngFor="let seat of getSeatsForRow(i)" class="seat"
+                [style.background-color]="getSeatBackground(seat)" (click)="toggleSeatDisabled(seat)"
+                [title]="seat.label + (seat.disabled ? ' (Disabled)' : '')">
                 {{ seat.col + 1 }}
               </div>
             </div>
@@ -152,7 +151,9 @@
     </div>
 
     <div class="form-actions">
-      <button (click)="saveShow()" [disabled]="saving() || !selectedMovieId || !selectedTheaterId || !selectedScreenId || !showDateTime" class="btn-primary">
+      <button (click)="saveShow()"
+        [disabled]="saving() || !selectedMovieId || !selectedTheaterId || !selectedScreenId || !showDateTime"
+        class="btn-primary">
         {{ saving() ? 'Saving...' : (editingShowId() ? 'Update Show' : 'Create Show') }}
       </button>
       <button (click)="cancelForm()" [disabled]="saving()" class="btn-secondary">Cancel</button>

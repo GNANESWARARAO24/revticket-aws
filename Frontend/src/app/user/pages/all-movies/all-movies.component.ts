@@ -5,22 +5,15 @@ import { MovieService } from '../../../core/services/movie.service';
 import { AlertService } from '../../../core/services/alert.service';
 import { Movie } from '../../../core/models/movie.model';
 import { LoaderComponent } from '../../../shared/components/loader/loader.component';
-import { HeroSliderComponent } from '../../components/hero-slider/hero-slider.component';
-import { MovieCarouselComponent } from '../../components/movie-carousel/movie-carousel.component';
 
 @Component({
-  selector: 'app-home',
+  selector: 'app-all-movies',
   standalone: true,
-  imports: [
-    CommonModule,
-    LoaderComponent,
-    HeroSliderComponent,
-    MovieCarouselComponent
-  ],
-  templateUrl: './home.component.html',
-  styleUrls: ['./home.component.css']
+  imports: [CommonModule, LoaderComponent],
+  templateUrl: './all-movies.component.html',
+  styleUrls: ['./all-movies.component.css']
 })
-export class HomeComponent implements OnInit {
+export class AllMoviesComponent implements OnInit {
   private movieService = inject(MovieService);
   private alertService = inject(AlertService);
   private router = inject(Router);
@@ -37,14 +30,27 @@ export class HomeComponent implements OnInit {
     this.loading.set(true);
     this.movieService.getMovies().subscribe({
       next: (movies) => {
-        const activeMovies = movies.filter(movie => movie.isActive);
-        this.movies.set(activeMovies);
+        this.movies.set(movies.filter(m => m.isActive));
         this.loading.set(false);
       },
       error: () => {
-        this.alertService.error('Failed to load movies. Please try again.');
+        this.alertService.error('Failed to load movies');
         this.loading.set(false);
       }
     });
+  }
+
+  viewDetails(movieId: string): void {
+    this.router.navigate(['/user/movie-details', movieId]);
+  }
+
+  viewShowtimes(event: Event, movieId: string): void {
+    event.stopPropagation();
+    this.router.navigate(['/user/movie-details', movieId]);
+  }
+
+  bookNow(event: Event, movieId: string): void {
+    event.stopPropagation();
+    this.router.navigate(['/user/movie-details', movieId]);
   }
 }

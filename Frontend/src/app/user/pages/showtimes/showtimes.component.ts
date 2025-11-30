@@ -97,15 +97,14 @@ export class ShowtimesComponent implements OnInit {
 
   ngOnInit(): void {
     window.scrollTo(0, 0);
-    const slug = this.route.snapshot.paramMap.get('slug');
+    const id = this.route.snapshot.paramMap.get('id');
     
-    if (!slug) {
+    if (id) {
+      this.loadDataById(id);
+    } else {
       this.alertService.error('Invalid movie');
       this.router.navigate(['/user/home']);
-      return;
     }
-
-    this.loadDataBySlug(slug);
   }
 
   selectDate(date: Date): void {
@@ -203,6 +202,23 @@ export class ShowtimesComponent implements OnInit {
   getScreenLabel(showtimeId: string): string {
     const showtime = this.showtimes().find(s => s.id === showtimeId);
     return showtime?.screen || 'Screen 1';
+  }
+
+  private loadDataById(id: string): void {
+    this.loading.set(true);
+    
+    this.movieService.getMovieById(id).subscribe({
+      next: (movie: Movie) => {
+        this.movie.set(movie);
+        this.loadShowtimes(movie.id);
+      },
+      error: () => {
+        this.error.set('Movie not found');
+        this.loading.set(false);
+        this.alertService.error('Movie not found');
+        this.router.navigate(['/user/home']);
+      }
+    });
   }
 
   private loadShowtimes(movieId: string): void {

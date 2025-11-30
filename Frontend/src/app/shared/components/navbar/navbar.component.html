@@ -1,35 +1,58 @@
 <nav class="navbar">
   <div class="nav-container">
-    <div class="nav-brand">
-      <a routerLink="/user/home">🎬 RevTicket</a>
+    <div class="nav-left">
+      <a routerLink="/user/home" class="logo">🎬 RevTicket</a>
+      <div class="location-selector">
+        <span class="location-icon">📍</span>
+        <span class="location-text">Chennai</span>
+      </div>
     </div>
     
     @if (currentUser(); as user) {
-      <div class="nav-menu">
+      <div class="nav-center">
         @if (user.role === 'USER') {
-          <div class="nav-links">
-            <a routerLink="/user/home" routerLinkActive="active">Home</a>
-            <a routerLink="/user/my-bookings" routerLinkActive="active">My Bookings</a>
-            <a routerLink="/user/profile" routerLinkActive="active">Profile</a>
-          </div>
+          <a routerLink="/user/home" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">Home</a>
+          <a routerLink="/user/movies" routerLinkActive="active">Movies</a>
+          <a routerLink="/user/my-bookings" routerLinkActive="active">Orders</a>
         }
-        
         @if (user.role === 'ADMIN') {
-          <div class="nav-links">
-            <a routerLink="/admin/dashboard" routerLinkActive="active">Dashboard</a>
-            <a routerLink="/admin/manage-movies" routerLinkActive="active">Movies</a>
-            <a routerLink="/admin/manage-shows" routerLinkActive="active">Shows</a>
-            <a routerLink="/admin/bookings-report" routerLinkActive="active">Reports</a>
-          </div>
+          <a routerLink="/admin/dashboard" routerLinkActive="active">Dashboard</a>
+          <a routerLink="/admin/manage-movies" routerLinkActive="active">Movies</a>
+          <a routerLink="/admin/manage-shows" routerLinkActive="active">Shows</a>
+          <a routerLink="/admin/bookings-report" routerLinkActive="active">Reports</a>
         }
-        
-        <div class="nav-user">
-          <span class="user-name">{{ user.name }}</span>
-          <button class="logout-btn" (click)="logout()">Logout</button>
+      </div>
+      
+      <div class="nav-right">
+        <div class="search-box">
+          <input type="text" placeholder="Search movies..." (input)="onSearch($any($event.target).value)">
+          <span class="search-icon">🔍</span>
+        </div>
+        <div class="user-menu">
+          <button class="user-btn" (click)="toggleUserMenu()">
+            <span class="user-avatar">{{ user.name.charAt(0).toUpperCase() }}</span>
+          </button>
+          @if (showUserMenu) {
+            <div class="user-dropdown">
+              <div class="user-info">
+                <div class="user-name">{{ user.name }}</div>
+                <div class="user-email">{{ user.email }}</div>
+              </div>
+              <div class="dropdown-divider"></div>
+              <a routerLink="/user/profile" (click)="toggleUserMenu()">Profile</a>
+              <a routerLink="/user/my-bookings" (click)="toggleUserMenu()">My Bookings</a>
+              <div class="dropdown-divider"></div>
+              <button class="logout-btn" (click)="logout()">Logout</button>
+            </div>
+          }
         </div>
       </div>
     } @else {
-      <div class="nav-auth">
+      <div class="nav-center">
+        <a routerLink="/user/home" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">Home</a>
+        <a routerLink="/user/movies" routerLinkActive="active">Movies</a>
+      </div>
+      <div class="nav-right">
         <a routerLink="/auth/login" class="login-btn">Login</a>
         <a routerLink="/auth/signup" class="signup-btn">Sign Up</a>
       </div>

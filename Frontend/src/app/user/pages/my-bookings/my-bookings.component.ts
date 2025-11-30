@@ -185,11 +185,19 @@ export class MyBookingsComponent implements OnInit {
   viewTicket(booking: BookingCard): void {
     this.selectedBooking.set(booking);
     this.showTicket.set(true);
+    document.body.style.overflow = 'hidden';
+    setTimeout(() => {
+      const modalContent = document.querySelector('.modal-content');
+      if (modalContent) {
+        modalContent.scrollTop = 0;
+      }
+    }, 100);
   }
 
   closeTicket(): void {
     this.showTicket.set(false);
     this.selectedBooking.set(null);
+    document.body.style.overflow = '';
   }
 
   viewDetails(_booking: BookingCard): void {
@@ -202,8 +210,9 @@ export class MyBookingsComponent implements OnInit {
     }
     const showtime = new Date(booking.showtime);
     const now = new Date();
-    // Allow cancellation if showtime is in the future (removed 2 hour restriction for now)
-    return showtime.getTime() > now.getTime();
+    // Allow cancellation if showtime is at least 1 hour in the future
+    const hoursDiff = (showtime.getTime() - now.getTime()) / (1000 * 60 * 60);
+    return hoursDiff > 1;
   }
 
   isPendingCancellation(booking: BookingCard): boolean {
@@ -246,18 +255,96 @@ export class MyBookingsComponent implements OnInit {
     return `Refunded ₹${booking.refundAmount} on ${date}`;
   }
 
+  getUpcomingCount(): number {
+    const now = new Date();
+    return this.bookings().filter(b => 
+      new Date(b.showtime) > now && b.status === 'CONFIRMED'
+    ).length;
+  }
+
+  getPastCount(): number {
+    const now = new Date();
+    return this.bookings().filter(b => new Date(b.showtime) <= now).length;
+  }
+
+  getCancelledCount(): number {
+    return this.bookings().filter(b => b.status === 'CANCELLED').length;
+  }
+
+  isUpcoming(booking: BookingCard): boolean {
+    return new Date(booking.showtime) > new Date() && booking.status === 'CONFIRMED';
+  }
+
+  isPast(booking: BookingCard): boolean {
+    return new Date(booking.showtime) <= new Date();
+  }
+
+  getStatusLabel(status: string): string {
+    const labels: Record<string, string> = {
+      'CONFIRMED': 'Confirmed',
+      'CANCELLED': 'Cancelled',
+      'PENDING': 'Pending',
+      'CANCELLATION_REQUESTED': 'Cancellation Pending'
+    };
+    return labels[status] || status;
+  }
+
+  formatShowtime(date: string | Date): string {
+    return new Date(date).toLocaleString('en-IN', {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  }
+
+  formatDate(date: string | Date): string {
+    return new Date(date).toLocaleDateString('en-IN', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric'
+    });
+  }
+
+  formatCurrency(amount: number): string {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      maximumFractionDigits: 0
+    }).format(amount);
+  }
+
+  getSeatLabels(booking: BookingCard): string[] {
+    return booking.seatLabels && booking.seatLabels.length > 0 
+      ? booking.seatLabels 
+      : booking.seats || [];
+  }
+
+  getEmptyStateTitle(): string {
+    if (this.searchTerm()) return 'No Results Found';
+    switch (this.activeFilter()) {
+      case 'upcoming': return 'No Upcoming Shows';
+      case 'past': return 'No Past Bookings';
+      case 'cancelled': return 'No Cancelled Bookings';
+      default: return 'No Bookings Yet';
+    }
+  }
+
   getEmptyStateMessage(): string {
+    if (this.searchTerm()) {
+      return 'Try adjusting your search terms or filters';
+    }
     switch (this.activeFilter()) {
       case 'upcoming':
-        return 'No upcoming bookings found.';
+        return 'Book tickets for upcoming movies to see them here';
       case 'past':
-        return 'No past bookings found.';
+        return 'Your watched movies will appear here';
       case 'cancelled':
-        return 'No cancelled bookings found.';
+        return 'You have no cancelled bookings';
       default:
-        return this.searchTerm()
-          ? 'No bookings match your search.'
-          : 'No bookings yet. Start exploring movies!';
+        return 'Start your movie journey by booking your first ticket';
     }
   }
 

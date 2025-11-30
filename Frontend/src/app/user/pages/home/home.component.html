@@ -1,100 +1,17 @@
-<div class="home-container">
-  <section class="hero-section">
-    <div class="hero-content">
-      <div class="hero-text">
-        <h1 class="hero-title">Experience Cinema Like Never Before</h1>
-        <p class="hero-subtitle">Book premium movie tickets with the best seats, latest shows, and exclusive offers</p>
-        <div class="hero-stats">
-          <div class="stat-item">
-            <span class="stat-number">{{ displayMovieCount() }}</span>
-            <span class="stat-label">Movies</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-number">{{ displayTheaterCount() }}</span>
-            <span class="stat-label">Theaters</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-number">{{ stats().totalCustomers }}</span>
-            <span class="stat-label">Happy Customers</span>
-          </div>
-        </div>
-      </div>
-      <div class="hero-visual">
-        <div class="floating-cards">
-          <div class="floating-card card-1">🎬</div>
-          <div class="floating-card card-2">🍿</div>
-          <div class="floating-card card-3">🎭</div>
-        </div>
-      </div>
-    </div>
-  </section>
+<div class="home-page">
+  <!-- Hero Slider -->
+  <app-hero-slider [movies]="movies().slice(0, 4)"></app-hero-slider>
 
-  <section class="movies-section">
-    <div class="section-header">
-      <div class="section-title-group">
-        <h2 class="section-title">Now Showing</h2>
-        <p class="section-subtitle">Discover the latest blockbusters and indie films</p>
-      </div>
+  <!-- Loading State -->
+  @if (loading()) {
+    <div class="loading-section">
+      <app-loader></app-loader>
     </div>
-    
-    <div class="search-filter-container">
-      <div class="search-box">
-        <input type="text" 
-               [value]="searchTerm()" 
-               (input)="onSearch($any($event.target).value)"
-               placeholder="Search movies..."
-               class="search-input">
-        <span class="search-icon">🔍</span>
-      </div>
-      <div class="section-filters">
-        @for (genre of genres(); track genre) {
-          <button class="filter-btn"
-                  [class.active]="selectedGenre() === genre"
-                  (click)="onGenreFilter(genre)">
-            {{ genre }}
-          </button>
-        }
-      </div>
-    </div>
-    
-    @if (loading()) {
-      <app-loader class="loader-container"></app-loader>
-    }
-    
-    @if (!loading()) {
-      <div class="movies-grid">
-        @for (movie of filteredMovies(); track movie.id) {
-          <app-movie-card [movie]="movie" class="movie-card-item"></app-movie-card>
-        }
-      </div>
-    }
-    
-    @if (!loading() && filteredMovies().length === 0) {
-      <div class="empty-state">
-        <div class="empty-icon">🎬</div>
-        <h3>No Movies Found</h3>
-        <p>Try adjusting your search or filter criteria</p>
-      </div>
-    }
-  </section>
+  }
 
-  <section class="features-section">
-    <div class="features-grid">
-      <div class="feature-card">
-        <div class="feature-icon">🎫</div>
-        <h3>Easy Booking</h3>
-        <p>Book tickets in just a few clicks with our streamlined process</p>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon">💺</div>
-        <h3>Best Seats</h3>
-        <p>Choose from premium seats with our interactive seat selection</p>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon">💳</div>
-        <h3>Secure Payment</h3>
-        <p>Multiple payment options with bank-level security</p>
-      </div>
-    </div>
-  </section>
+  <!-- Main Content -->
+  @if (!loading()) {
+    <!-- Movie Carousel -->
+    <app-movie-carousel [movies]="movies()" [title]="'Now Showing'"></app-movie-carousel>
+  }
 </div>

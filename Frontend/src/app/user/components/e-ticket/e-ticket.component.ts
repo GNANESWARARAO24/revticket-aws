@@ -1,285 +1,174 @@
-import { Component, Input } from '@angular/core';
+import { Component, Input, OnInit, ViewChild, ElementRef, inject, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Booking } from '../../../core/models/booking.model';
+import * as QRCode from 'qrcode';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
+import { AlertService } from '../../../core/services/alert.service';
 
 @Component({
   selector: 'app-e-ticket',
   standalone: true,
   imports: [CommonModule],
-  template: `
-    <div class="e-ticket" *ngIf="booking">
-      <div class="ticket-header">
-        <h2>E-TICKET</h2>
-        <div class="ticket-number">{{booking.ticketNumber || 'N/A'}}</div>
-      </div>
-
-      <div class="movie-details">
-        <h3>{{booking.movieTitle}}</h3>
-        <div class="show-info">
-          <div class="info-row">
-            <span class="label">Theater:</span>
-            <span>{{booking.theaterName}}</span>
-          </div>
-          <div class="info-row" *ngIf="booking.screen">
-            <span class="label">Screen:</span>
-            <span>{{booking.screen}}</span>
-          </div>
-          <div class="info-row">
-            <span class="label">Date & Time:</span>
-            <span>{{formatDateTime(booking.showtime)}}</span>
-          </div>
-          <div class="info-row">
-            <span class="label">Seats:</span>
-            <span class="seats">{{getSeatDisplay()}}</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="customer-details">
-        <h4>Customer Details</h4>
-        <div class="info-row">
-          <span class="label">Name:</span>
-          <span>{{booking.customerName}}</span>
-        </div>
-        <div class="info-row">
-          <span class="label">Email:</span>
-          <span>{{booking.customerEmail}}</span>
-        </div>
-        <div class="info-row">
-          <span class="label">Phone:</span>
-          <span>{{booking.customerPhone}}</span>
-        </div>
-      </div>
-
-      <div class="payment-details">
-        <div class="info-row">
-          <span class="label">Total Amount:</span>
-          <span class="amount">₹{{booking.totalAmount}}</span>
-        </div>
-        <div class="info-row">
-          <span class="label">Booking ID:</span>
-          <span>{{booking.id}}</span>
-        </div>
-        <div class="info-row">
-          <span class="label">Booking Date:</span>
-          <span>{{formatDate(booking.bookingDate)}}</span>
-        </div>
-      </div>
-
-      <div class="qr-section">
-        <div class="qr-code">
-          <div class="qr-placeholder">
-            <div class="qr-pattern"></div>
-            <div class="qr-text">{{booking.qrCode || booking.id}}</div>
-          </div>
-        </div>
-        <p class="qr-instruction">Show this QR code at the theater entrance</p>
-      </div>
-
-      <div class="ticket-footer">
-        <div class="status" [ngClass]="booking.status.toLowerCase()">
-          Status: {{booking.status | titlecase}}
-        </div>
-        <div class="terms">
-          <small>
-            • Please arrive 30 minutes before showtime<br>
-            • Outside food and beverages are not allowed<br>
-            • This ticket is non-transferable
-          </small>
-        </div>
-      </div>
-
-      <div class="actions">
-        <button (click)="downloadTicket()" class="download-btn">Download PDF</button>
-        <button (click)="shareTicket()" class="share-btn">Share</button>
-      </div>
-    </div>
-  `,
-  styles: [`
-    .e-ticket {
-      max-width: 400px;
-      margin: 0 auto;
-      background: white;
-      border: 2px dashed #ccc;
-      border-radius: 10px;
-      padding: 20px;
-      font-family: 'Courier New', monospace;
-    }
-    .ticket-header {
-      text-align: center;
-      border-bottom: 1px solid #ddd;
-      padding-bottom: 15px;
-      margin-bottom: 20px;
-    }
-    .ticket-header h2 {
-      margin: 0;
-      color: #333;
-      font-size: 24px;
-    }
-    .ticket-number {
-      background: #f0f0f0;
-      padding: 5px 10px;
-      border-radius: 5px;
-      margin-top: 10px;
-      font-weight: bold;
-    }
-    .movie-details h3 {
-      margin: 0 0 15px 0;
-      color: #2196f3;
-      text-align: center;
-      font-size: 20px;
-    }
-    .info-row {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 8px;
-      padding: 5px 0;
-    }
-    .label {
-      font-weight: bold;
-      color: #666;
-    }
-    .seats {
-      background: #e3f2fd;
-      padding: 2px 8px;
-      border-radius: 4px;
-      font-weight: bold;
-    }
-    .amount {
-      font-size: 18px;
-      font-weight: bold;
-      color: #4caf50;
-    }
-    .customer-details, .payment-details {
-      margin: 20px 0;
-      padding: 15px 0;
-      border-top: 1px solid #eee;
-    }
-    .customer-details h4 {
-      margin: 0 0 10px 0;
-      color: #333;
-    }
-    .qr-section {
-      text-align: center;
-      margin: 20px 0;
-      padding: 20px 0;
-      border-top: 1px solid #eee;
-    }
-    .qr-code {
-      display: inline-block;
-      margin-bottom: 10px;
-    }
-    .qr-placeholder {
-      width: 120px;
-      height: 120px;
-      border: 2px solid #333;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      background: #f9f9f9;
-    }
-    .qr-pattern {
-      width: 80px;
-      height: 80px;
-      background: 
-        repeating-linear-gradient(0deg, #000, #000 2px, transparent 2px, transparent 4px),
-        repeating-linear-gradient(90deg, #000, #000 2px, transparent 2px, transparent 4px);
-      margin-bottom: 5px;
-    }
-    .qr-text {
-      font-size: 8px;
-      font-weight: bold;
-    }
-    .qr-instruction {
-      font-size: 12px;
-      color: #666;
-      margin: 0;
-    }
-    .ticket-footer {
-      border-top: 1px solid #eee;
-      padding-top: 15px;
-      margin-top: 20px;
-    }
-    .status {
-      text-align: center;
-      padding: 8px;
-      border-radius: 5px;
-      font-weight: bold;
-      margin-bottom: 15px;
-    }
-    .status.confirmed { background: #e8f5e8; color: #4caf50; }
-    .status.pending { background: #fff3e0; color: #ff9800; }
-    .status.cancelled { background: #ffebee; color: #f44336; }
-    .status.cancellation_requested { background: #fff3e0; color: #ff9800; }
-    .terms {
-      font-size: 10px;
-      color: #666;
-      text-align: center;
-    }
-    .actions {
-      display: flex;
-      gap: 10px;
-      margin-top: 20px;
-    }
-    .actions button {
-      flex: 1;
-      padding: 10px;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-      font-size: 12px;
-    }
-    .download-btn { background: #2196f3; color: white; }
-    .share-btn { background: #4caf50; color: white; }
-    .cancel-btn { background: #f44336; color: white; }
-  `]
+  templateUrl: './e-ticket.component.html',
+  styleUrls: ['./e-ticket.component.css']
 })
-export class ETicketComponent {
+export class ETicketComponent implements OnInit, AfterViewInit {
   @Input() booking!: Booking;
+  @ViewChild('ticketContent', { static: false }) ticketContent!: ElementRef;
+  
+  qrCodeDataUrl: string = '';
+  private alertService = inject(AlertService);
+
+  ngOnInit(): void {
+    if (this.booking) {
+      this.generateQRCode();
+    }
+  }
+
+  ngAfterViewInit(): void {
+    // Ensure QR is generated after view is ready
+    if (!this.qrCodeDataUrl && this.booking) {
+      setTimeout(() => this.generateQRCode(), 100);
+    }
+  }
+
+  async generateQRCode(): Promise<void> {
+    try {
+      // Simple booking ID for faster generation
+      const qrData = `REVTICKET:${this.booking.id}`;
+      
+      this.qrCodeDataUrl = await QRCode.toDataURL(qrData, {
+        width: 200,
+        margin: 1,
+        errorCorrectionLevel: 'M'
+      });
+    } catch (error) {
+      console.error('QR Code generation failed:', error);
+      this.qrCodeDataUrl = '';
+    }
+  }
 
   getSeatDisplay(): string {
     if (this.booking.seatLabels && this.booking.seatLabels.length > 0) {
       return this.booking.seatLabels.join(', ');
     }
-    return this.booking.seats.join(', ');
+    return this.booking.seats?.join(', ') || 'N/A';
   }
 
   formatDateTime(date: string | Date): string {
     return new Date(date).toLocaleString('en-IN', {
+      weekday: 'short',
       day: '2-digit',
       month: 'short',
       year: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
+      hour12: true
     });
   }
 
   formatDate(date: string | Date): string {
-    return new Date(date).toLocaleDateString('en-IN');
+    return new Date(date).toLocaleDateString('en-IN', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric'
+    });
   }
 
-  canCancel(): boolean {
-    if (this.booking.status !== 'CONFIRMED') return false;
-    const showTime = new Date(this.booking.showtime);
-    const now = new Date();
-    const hoursUntilShow = (showTime.getTime() - now.getTime()) / (1000 * 60 * 60);
-    return hoursUntilShow > 2;
+  formatCurrency(amount: number): string {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      maximumFractionDigits: 0
+    }).format(amount);
   }
 
-  downloadTicket(): void {
-    window.print();
-  }
-
-  shareTicket(): void {
-    if (navigator.share) {
-      navigator.share({
-        title: `Movie Ticket - ${this.booking.movieTitle}`,
-        text: `Booking confirmed for ${this.booking.movieTitle} on ${this.formatDateTime(this.booking.showtime)}`,
-        url: window.location.href
+  async downloadPDF(): Promise<void> {
+    try {
+      this.alertService.info('Generating PDF...');
+      
+      const element = this.ticketContent.nativeElement;
+      const originalHeight = element.style.height;
+      
+      // Force full height for capture
+      element.style.height = 'auto';
+      
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff',
+        scrollY: -window.scrollY,
+        scrollX: -window.scrollX,
+        windowHeight: element.scrollHeight + 100
       });
+      
+      // Restore original height
+      element.style.height = originalHeight;
+
+      const imgWidth = 210;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      const pageHeight = 297;
+      
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const imgData = canvas.toDataURL('image/png');
+      
+      let position = 0;
+      let heightLeft = imgHeight;
+      
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+      
+      while (heightLeft > 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+      
+      pdf.save(`RevTicket_${this.booking.ticketNumber || this.booking.id}.pdf`);
+      this.alertService.success('Ticket downloaded successfully!');
+    } catch (error) {
+      console.error('PDF generation failed:', error);
+      this.alertService.error('Failed to download PDF. Please try again.');
     }
   }
 
+  async shareTicket(): Promise<void> {
+    const shareData = {
+      title: `Movie Ticket - ${this.booking.movieTitle}`,
+      text: `🎬 ${this.booking.movieTitle}\n🏢 ${this.booking.theaterName}\n📅 ${this.formatDateTime(this.booking.showtime)}\n💺 ${this.getSeatDisplay()}\n🎫 Ticket: ${this.booking.ticketNumber}`,
+      url: window.location.href
+    };
 
+    if (navigator.share && navigator.canShare(shareData)) {
+      try {
+        await navigator.share(shareData);
+        this.alertService.success('Ticket shared successfully!');
+      } catch (error) {
+        if ((error as Error).name !== 'AbortError') {
+          this.copyToClipboard();
+        }
+      }
+    } else {
+      this.copyToClipboard();
+    }
+  }
+
+  private copyToClipboard(): void {
+    const text = `🎬 ${this.booking.movieTitle}\n🏢 ${this.booking.theaterName}\n📅 ${this.formatDateTime(this.booking.showtime)}\n💺 ${this.getSeatDisplay()}\n🎫 ${this.booking.ticketNumber}`;
+    
+    navigator.clipboard.writeText(text).then(() => {
+      this.alertService.success('Ticket details copied to clipboard!');
+    }).catch(() => {
+      this.alertService.error('Failed to copy ticket details.');
+    });
+  }
+
+  printTicket(): void {
+    window.print();
+  }
 }

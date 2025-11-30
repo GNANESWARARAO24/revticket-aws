@@ -15,8 +15,20 @@ export class NavbarComponent {
   private router = inject(Router);
   
   currentUser = this.authService.currentUser;
+  showUserMenu = false;
+
+  toggleUserMenu(): void {
+    this.showUserMenu = !this.showUserMenu;
+  }
+
+  onSearch(value: string): void {
+    if (value.trim()) {
+      this.router.navigate(['/user/showtimes'], { queryParams: { search: value } });
+    }
+  }
 
   logout(): void {
+    this.showUserMenu = false;
     this.authService.logout();
     this.router.navigate(['/auth/login']);
   }
