@@ -1,12 +1,12 @@
 <div class="page-wrapper">
   <!-- HEADER -->
   <header class="page-header">
-    <div>
-      <h1 class="page-title">Manage Theatres</h1>
-      <p class="page-subtitle">View and manage all theatres in your system</p>
+    <div class="header-left">
+      <h1 class="page-title">🏢 Manage Theatres</h1>
+      <p class="page-subtitle">{{ filteredTheatres().length }} of {{ theatres().length }} theatres</p>
     </div>
     <button class="btn-add" (click)="addTheatre()" [disabled]="loading()">
-      <span>+</span>
+      <span>➕</span>
       <span>Add Theatre</span>
     </button>
   </header>
@@ -15,19 +15,24 @@
   @if (!showForm()) {
   <section class="filters-bar">
     <div class="search-box">
+      <span class="search-icon">🔍</span>
       <input type="text" 
              class="search-input" 
-             placeholder="Search theatres..." 
+             placeholder="Search by name, city, or address..." 
              [value]="searchTerm()" 
              (input)="onSearchChange($any($event.target).value)">
-      <span class="search-icon">🔍</span>
+      @if (searchTerm()) {
+      <button class="clear-btn" (click)="searchTerm.set(''); onFilterChange()" title="Clear search">
+        ✕
+      </button>
+      }
     </div>
 
     <select class="filter-dropdown" 
             [value]="selectedCity()" 
             (change)="selectedCity.set($any($event.target).value); onFilterChange()">
-      <option value="">All Cities</option>
-      @for (city of cities(); track $index) {
+      <option value="">📍 All Cities</option>
+      @for (city of cities(); track city) {
         <option [value]="city">{{ city }}</option>
       }
     </select>
@@ -35,10 +40,17 @@
     <select class="filter-dropdown" 
             [value]="selectedStatus()" 
             (change)="selectedStatus.set($any($event.target).value); onFilterChange()">
-      <option value="">All Status</option>
-      <option value="active">Active</option>
-      <option value="inactive">Inactive</option>
+      <option value="">🔘 All Status</option>
+      <option value="active">✅ Active</option>
+      <option value="inactive">❌ Inactive</option>
     </select>
+
+    @if (searchTerm() || selectedCity() || selectedStatus()) {
+    <button class="btn-clear-filters" (click)="searchTerm.set(''); selectedCity.set(''); selectedStatus.set(''); onFilterChange()">
+      <span>🔄</span>
+      <span>Clear</span>
+    </button>
+    }
   </section>
   }
 
@@ -134,7 +146,7 @@
       <div class="card-header">
         <h3 class="theatre-name">{{ theatre.name }}</h3>
         <span class="status-pill" [class.active]="theatre.isActive" [class.inactive]="!theatre.isActive">
-          {{ theatre.isActive ? 'ACTIVE' : 'INACTIVE' }}
+          {{ theatre.isActive ? '✅ ACTIVE' : '❌ INACTIVE' }}
         </span>
       </div>
       
@@ -149,17 +161,33 @@
       </div>
       
       <div class="card-actions">
-        <button class="action-btn screens" (click)="goToScreens(theatre.id)">Screens</button>
-        <button class="action-btn edit" (click)="editTheatre(theatre)">Edit</button>
+        <button class="action-btn screens" (click)="goToScreens(theatre.id)" title="Manage Screens">
+          🎬 Screens
+        </button>
+        <button class="action-btn edit" (click)="editTheatre(theatre)" title="Edit Theatre">
+          ✏️ Edit
+        </button>
         <button class="action-btn pause" 
                 (click)="toggleStatus(theatre.id, theatre.isActive)"
-                [disabled]="statusUpdatingId() === theatre.id">
-          {{ statusUpdatingId() === theatre.id ? 'Updating...' : (theatre.isActive ? 'Pause' : 'Resume') }}
+                [disabled]="statusUpdatingId() === theatre.id"
+                [class.loading]="statusUpdatingId() === theatre.id"
+                [title]="theatre.isActive ? 'Deactivate Theatre' : 'Activate Theatre'">
+          @if (statusUpdatingId() === theatre.id) {
+            ⏳ Updating...
+          } @else {
+            {{ theatre.isActive ? '🚫 Pause' : '✅ Resume' }}
+          }
         </button>
         <button class="action-btn delete" 
                 (click)="deleteTheatreById(theatre.id)" 
-                [disabled]="deletingId() === theatre.id">
-          {{ deletingId() === theatre.id ? 'Deleting...' : 'Delete' }}
+                [disabled]="deletingId() === theatre.id"
+                [class.loading]="deletingId() === theatre.id"
+                title="Delete Theatre">
+          @if (deletingId() === theatre.id) {
+            ⏳ Deleting...
+          } @else {
+            🗑️ Delete
+          }
         </button>
       </div>
     </div>
@@ -172,12 +200,18 @@
   <section class="empty-state">
     <div class="empty-icon">🎭</div>
     <h3>No Theatres Found</h3>
-    <p>{{ searchTerm() || selectedCity() || selectedStatus() ? 'Try adjusting your filters' : 'Add your first theatre to get started' }}</p>
-    @if (!searchTerm() && !selectedCity() && !selectedStatus()) {
-    <button class="btn-add" (click)="addTheatre()">
-      <span>+</span>
-      <span>Add Theatre</span>
-    </button>
+    @if (searchTerm() || selectedCity() || selectedStatus()) {
+      <p>No theatres match your current filters</p>
+      <button class="btn-clear-filters" (click)="searchTerm.set(''); selectedCity.set(''); selectedStatus.set(''); onFilterChange()">
+        <span>🔄</span>
+        <span>Clear All Filters</span>
+      </button>
+    } @else if (theatres().length === 0) {
+      <p>Add your first theatre to get started</p>
+      <button class="btn-add" (click)="addTheatre()">
+        <span>➕</span>
+        <span>Add Theatre</span>
+      </button>
     }
   </section>
   }

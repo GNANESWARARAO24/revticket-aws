@@ -2,6 +2,7 @@ package com.revticket.controller;
 
 import com.revticket.dto.BookingRequest;
 import com.revticket.dto.BookingResponse;
+import com.revticket.dto.CancellationRequest;
 import com.revticket.service.BookingService;
 import com.revticket.util.SecurityUtil;
 import jakarta.validation.Valid;
@@ -48,7 +49,8 @@ public class BookingController {
     @PostMapping("/{id}/request-cancellation")
     public ResponseEntity<BookingResponse> requestCancellation(
             @PathVariable("id") String id,
-            @RequestBody String reason) {
+            @RequestBody(required = false) CancellationRequest request) {
+        String reason = request != null && request.getReason() != null ? request.getReason() : "";
         return ResponseEntity.ok(bookingService.requestCancellation(id, reason));
     }
 

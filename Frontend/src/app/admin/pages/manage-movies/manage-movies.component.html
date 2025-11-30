@@ -2,15 +2,16 @@
   <!-- Header -->
   <header class="page-header">
     <div class="header-left">
-      <h1 class="page-title">Manage Movies</h1>
-      <p class="page-subtitle">Create, edit, and manage all movies</p>
+      <h1 class="page-title">🎬 Manage Movies</h1>
+      <p class="page-subtitle">{{ filteredMovies().length }} of {{ movies().length }} movies</p>
     </div>
     <div class="header-actions">
       <button class="btn-secondary" [class.active]="showInactive()" (click)="toggleInactiveFilter()">
-        {{ showInactive() ? 'Hide Inactive' : 'Show Inactive' }}
+        <span>{{ showInactive() ? '👁️' : '👁️‍🗨️' }}</span>
+        <span>{{ showInactive() ? 'Hide Inactive' : 'Show Inactive' }}</span>
       </button>
       <button class="btn-primary" routerLink="/admin/add-movie">
-        <span>+</span>
+        <span>➕</span>
         <span>Add New Movie</span>
       </button>
     </div>
@@ -20,16 +21,31 @@
   <section class="filters-section">
     <div class="search-box">
       <span class="search-icon">🔍</span>
-      <input type="text" placeholder="Search movies..." [ngModel]="searchTerm()"
+      <input type="text" placeholder="Search by title, director, language..." [ngModel]="searchTerm()"
         (ngModelChange)="searchTerm.set($event)">
+      @if (searchTerm()) {
+      <button class="clear-btn" (click)="searchTerm.set('')" title="Clear search">
+        ✕
+      </button>
+      }
     </div>
 
     <select [ngModel]="selectedGenre()" (ngModelChange)="selectedGenre.set($event)" class="filter-select">
-      <option value="">All Genres</option>
-      @for (genre of availableGenres(); track $index) {
+      <option value="">🎭 All Genres ({{ movies().length }})</option>
+      @for (genre of availableGenres(); track genre) {
       <option [value]="genre">{{ genre }}</option>
       }
+      @if (availableGenres().length === 0) {
+      <option disabled>No genres available</option>
+      }
     </select>
+
+    @if (searchTerm() || selectedGenre()) {
+    <button class="btn-clear-filters" (click)="searchTerm.set(''); selectedGenre.set('')">
+      <span>🔄</span>
+      <span>Clear Filters</span>
+    </button>
+    }
   </section>
 
   <!-- Loading State -->
@@ -91,13 +107,21 @@
       </div>
 
       <div class="col-actions">
-        <button class="action-btn edit" (click)="editMovie(movie)" title="Edit">
+        <button class="action-btn edit" (click)="editMovie(movie)" 
+          [disabled]="togglingStatusId() === movie.id || deletingId() === movie.id"
+          title="Edit Movie">
           ✏️
         </button>
         <button class="action-btn" [class.deactivate]="movie.isActive" [class.activate]="!movie.isActive"
-          (click)="toggleMovieStatus(movie)" [disabled]="deletingId() === movie.id"
-          [title]="movie.isActive ? 'Deactivate' : 'Activate'">
-          {{ movie.isActive ? '🚫' : '✓' }}
+          (click)="toggleMovieStatus(movie)" 
+          [disabled]="togglingStatusId() === movie.id || deletingId() === movie.id"
+          [class.loading]="togglingStatusId() === movie.id"
+          [title]="movie.isActive ? 'Deactivate Movie' : 'Activate Movie'">
+          @if (togglingStatusId() === movie.id) {
+            <span class="btn-spinner">⏳</span>
+          } @else {
+            {{ movie.isActive ? '🚫' : '✅' }}
+          }
         </button>
       </div>
     </div>
@@ -110,12 +134,24 @@
   <div class="empty-state">
     <div class="empty-icon">🎬</div>
     <h3>No Movies Found</h3>
-    <p>{{ searchTerm() || selectedGenre() ? 'Try adjusting your filters' : 'Start by adding your first movie' }}</p>
-    @if (!searchTerm() && !selectedGenre()) {
-    <button class="btn-primary" routerLink="/admin/add-movie">
-      <span>+</span>
-      <span>Add First Movie</span>
-    </button>
+    @if (searchTerm() || selectedGenre()) {
+      <p>No movies match your current filters</p>
+      <button class="btn-secondary" (click)="searchTerm.set(''); selectedGenre.set('')">
+        <span>🔄</span>
+        <span>Clear All Filters</span>
+      </button>
+    } @else if (movies().length === 0) {
+      <p>Start by adding your first movie to the system</p>
+      <button class="btn-primary" routerLink="/admin/add-movie">
+        <span>➕</span>
+        <span>Add First Movie</span>
+      </button>
+    } @else {
+      <p>All movies are currently inactive</p>
+      <button class="btn-secondary" (click)="showInactive.set(true)">
+        <span>👁️</span>
+        <span>Show Inactive Movies</span>
+      </button>
     }
   </div>
   }

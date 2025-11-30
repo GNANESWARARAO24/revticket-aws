@@ -4,6 +4,25 @@ import { FormsModule } from '@angular/forms';
 import { BookingService } from '../../../core/services/booking.service';
 import { AlertService } from '../../../core/services/alert.service';
 
+interface BookingData {
+  id: string;
+  ticketNumber?: string;
+  movieTitle: string;
+  moviePosterUrl?: string;
+  theaterName: string;
+  theaterLocation?: string;
+  screen?: string;
+  showtime: Date | string;
+  seatLabels?: string[];
+  seats: string[];
+  totalAmount: number;
+  bookingDate: Date | string;
+  status: string;
+  customerName: string;
+  customerEmail: string;
+  customerPhone: string;
+}
+
 @Component({
   selector: 'app-bookings',
   standalone: true,
@@ -15,8 +34,8 @@ export class BookingsComponent implements OnInit {
   private bookingService = inject(BookingService);
   private alertService = inject(AlertService);
 
-  bookings = signal<any[]>([]);
-  filteredBookings = signal<any[]>([]);
+  bookings = signal<BookingData[]>([]);
+  filteredBookings = signal<BookingData[]>([]);
   loading = signal(true);
   searchTerm = signal('');
   filterStatus = signal('ALL');
@@ -73,16 +92,59 @@ export class BookingsComponent implements OnInit {
     this.applyFilters();
   }
 
-  cancelBooking(bookingId: string): void {
-    if (!confirm('Are you sure you want to cancel this booking?')) return;
+  getStatusCount(status: string): number {
+    if (status === 'ALL') return this.bookings().length;
+    return this.bookings().filter(b => b.status === status).length;
+  }
 
-    this.bookingService.cancelBooking(bookingId).subscribe({
+  formatShowtime(date: Date | string): string {
+    return new Date(date).toLocaleString('en-IN', {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  }
+
+  formatDate(date: Date | string): string {
+    return new Date(date).toLocaleDateString('en-IN', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  }
+
+  cancelBooking(booking: BookingData): void {
+    const confirmMsg = `Cancel booking for ${booking.customerName}?\n\nMovie: ${booking.movieTitle}\nSeats: ${(booking.seatLabels || booking.seats).join(', ')}\nAmount: ${this.formatCurrency(booking.totalAmount)}`;
+    
+    if (!confirm(confirmMsg)) return;
+
+    this.bookingService.cancelBooking(booking.id).subscribe({
       next: () => {
-        this.alertService.success('Booking cancelled successfully');
+        this.alertService.success('Booking cancelled successfully. Seats have been freed.');
+        this.loadBookings();
+      },
+      error: (err) => {
+        console.error('Cancel error:', err);
+        this.alertService.error('Failed to cancel booking. Please try again.');
+      }
+    });
+  }
+
+  approveCancellation(booking: BookingData): void {
+    if (!confirm(`Approve cancellation request for ${booking.customerName}?`)) return;
+
+    this.bookingService.cancelBooking(booking.id, 'Approved by admin').subscribe({
+      next: () => {
+        this.alertService.success('Cancellation approved. Refund processed.');
         this.loadBookings();
       },
       error: () => {
-        this.alertService.error('Failed to cancel booking');
+        this.alertService.error('Failed to approve cancellation');
       }
     });
   }
@@ -93,5 +155,34 @@ export class BookingsComponent implements OnInit {
       currency: 'INR',
       maximumFractionDigits: 0
     }).format(amount);
+  }
+
+  getScreenLabel(screen?: string): string {
+    if (!screen) return 'N/A';
+    if (screen.length === 36 && screen.includes('-')) {
+      return 'Screen 1';
+    }
+    return screen;
+  }
+
+  getSeatLabels(booking: BookingData): string {
+    const seats = booking.seatLabels || booking.seats;
+    if (!seats || seats.length === 0) return 'N/A';
+    
+    const seatLabels = seats.map(seat => {
+      if (seat.length === 36 && seat.includes('-')) {
+        const index = seats.indexOf(seat);
+        const row = String.fromCharCode(65 + Math.floor(index / 10));
+        const col = (index % 10) + 1;
+        return `${row}${col}`;
+      }
+      return seat;
+    });
+    
+    return seatLabels.join(', ');
+  }
+
+  getStatusClass(status: string): string {
+    return `status-${status.toLowerCase()}`;
   }
 }

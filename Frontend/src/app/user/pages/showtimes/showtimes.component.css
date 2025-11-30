@@ -87,7 +87,7 @@
 
 .date-card {
   flex-shrink: 0;
-  width: 80px;
+  width: 90px;
   padding: 0.75rem;
   background: #f5f5f5;
   border-radius: 8px;
@@ -95,6 +95,7 @@
   cursor: pointer;
   transition: all 0.2s;
   border: 2px solid transparent;
+  position: relative;
 }
 
 .date-card:hover {
@@ -105,6 +106,15 @@
   background: #dc3558;
   color: white;
   border-color: #dc3558;
+}
+
+.date-card.no-shows {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.date-card.no-shows:hover {
+  background: #f5f5f5;
 }
 
 .date-day {
@@ -124,6 +134,13 @@
 .date-month {
   font-size: 0.75rem;
   text-transform: uppercase;
+}
+
+.show-count {
+  font-size: 0.65rem;
+  margin-top: 0.25rem;
+  font-weight: 600;
+  opacity: 0.8;
 }
 
 /* Filters Section */
@@ -357,7 +374,7 @@
   }
 
   .date-card {
-    width: 70px;
+    width: 80px;
   }
 
   .filters-row {
@@ -391,8 +408,12 @@
   }
 
   .date-card {
-    width: 65px;
+    width: 75px;
     padding: 0.5rem;
+  }
+
+  .show-count {
+    font-size: 0.6rem;
   }
 
   .date-num {

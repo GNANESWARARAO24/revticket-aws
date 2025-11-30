@@ -28,18 +28,16 @@
           @for (date of dates(); track date) {
             <div class="date-card" 
                  [class.active]="formatDate(date) === formatDate(selectedDate())"
+                 [class.no-shows]="getShowtimeCountForDate(date) === 0"
                  (click)="selectDate(date)">
               <div class="date-day">
-                @if (isToday(date)) {
-                  <span>Today</span>
-                } @else if (isTomorrow(date)) {
-                  <span>Tomorrow</span>
-                } @else {
-                  <span>{{ date | date:'EEE' }}</span>
-                }
+                <span>{{ getDayLabel(date) }}</span>
               </div>
               <div class="date-num">{{ date | date:'d' }}</div>
               <div class="date-month">{{ date | date:'MMM' }}</div>
+              @if (getShowtimeCountForDate(date) > 0) {
+                <div class="show-count">{{ getShowtimeCountForDate(date) }} shows</div>
+              }
             </div>
           }
         </div>
@@ -115,7 +113,7 @@
           <div class="empty-state">
             <div class="empty-icon">🎬</div>
             <h3>No Shows Available</h3>
-            <p>{{ error() || 'No showtimes match your filters' }}</p>
+            <p>{{ error() || 'No showtimes available for the selected date and filters. Try selecting a different date.' }}</p>
           </div>
         } @else {
           @for (theater of theaterGroups(); track theater.theaterId) {

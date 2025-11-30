@@ -17,24 +17,40 @@
     <!-- STATS ROW -->
     @if (!loading()) {
     <section class="stats-row fade-in">
-      <div class="stat-card">
-        <div class="stat-meta">Total Revenue</div>
-        <div class="stat-value">{{ formatCurrency(stats().totalRevenue) }}</div>
+      <div class="stat-card revenue-card">
+        <div class="stat-icon">💰</div>
+        <div class="stat-info">
+          <div class="stat-meta">Total Revenue</div>
+          <div class="stat-value">{{ formatCurrency(stats().totalRevenue) }}</div>
+          <div class="stat-trend positive">+{{ getRevenueChange().value.toFixed(1) }}% from last period</div>
+        </div>
       </div>
 
-      <div class="stat-card">
-        <div class="stat-meta">Total Bookings</div>
-        <div class="stat-value">{{ stats().totalBookings }}</div>
+      <div class="stat-card bookings-card">
+        <div class="stat-icon">🎫</div>
+        <div class="stat-info">
+          <div class="stat-meta">Total Bookings</div>
+          <div class="stat-value">{{ stats().totalBookings }}</div>
+          <div class="stat-trend positive">+{{ getBookingsChange().value.toFixed(1) }}% this month</div>
+        </div>
       </div>
 
-      <div class="stat-card">
-        <div class="stat-meta">Active Movies</div>
-        <div class="stat-value">{{ stats().activeMovies }}</div>
+      <div class="stat-card movies-card">
+        <div class="stat-icon">🎬</div>
+        <div class="stat-info">
+          <div class="stat-meta">Active Movies</div>
+          <div class="stat-value">{{ stats().activeMovies }}</div>
+          <div class="stat-sub">{{ stats().totalMovies }} total movies</div>
+        </div>
       </div>
 
-      <div class="stat-card">
-        <div class="stat-meta">Total Users</div>
-        <div class="stat-value">{{ stats().totalUsers }}</div>
+      <div class="stat-card users-card">
+        <div class="stat-icon">👥</div>
+        <div class="stat-info">
+          <div class="stat-meta">Total Users</div>
+          <div class="stat-value">{{ stats().totalUsers }}</div>
+          <div class="stat-trend positive">+{{ getUsersChange().value.toFixed(1) }}% growth</div>
+        </div>
       </div>
     </section>
     }
@@ -68,23 +84,23 @@
         </div>
 
         <div class="panel-body">
-          @if (revenueData().length > 0) {
           <div class="chart-container">
+            @if (revenueData().length > 0) {
             <div class="chart-bars">
               @for (data of revenueData(); track data.date) {
               <div class="bar-wrap">
-                <div class="bar" [style.height]="getBarHeight(data.revenue)">
+                <div class="bar" [style.height]="getBarHeight(data.revenue)" [class.has-revenue]="data.revenue > 0">
                   <div class="bar-fill"></div>
-                  <div class="bar-tooltip">{{ formatCurrency(data.revenue) }}</div>
+                  <div class="bar-tooltip">{{ data.revenue > 0 ? formatCurrency(data.revenue) : 'No revenue' }}</div>
                 </div>
                 <div class="bar-label">{{ getBarLabel(data.date) }}</div>
               </div>
               }
             </div>
+            } @else {
+            <div class="empty-state">📊 No revenue data available for this period</div>
+            }
           </div>
-          } @else {
-          <div class="empty-state">No revenue data available</div>
-          }
         </div>
       </div>
 

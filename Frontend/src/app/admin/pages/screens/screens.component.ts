@@ -1,33 +1,53 @@
-import { Component, OnInit, signal, inject, DestroyRef, computed } from '@angular/core';
+import { Component, OnInit, signal, computed, inject, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { finalize } from 'rxjs/operators';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { ScreenService, Screen, CreateScreenDto } from '../../../core/services/screen.service';
-import { TheaterService, Theater } from '../../../core/services/theater.service';
+import { environment } from '../../../../environments/environment';
 import { AlertService } from '../../../core/services/alert.service';
 
-interface SeatCategory {
+interface Theatre {
+  id: string;
+  name: string;
+  location: string;
+  totalScreens: number;
+  defaultCategories?: Category[];
+}
+
+interface Category {
   id: string;
   name: string;
   price: number;
   color: string;
-  description: string;
+  inheriting?: boolean;
 }
 
-interface RowRange {
-  categoryId: string;
-  startRow: number;
-  endRow: number;
-}
-
-interface Seat {
+interface SeatData {
+  seatId: string;
+  label: string;
   row: number;
   col: number;
-  label: string;
-  disabled: boolean;
   categoryId: string | null;
-  blocked: boolean;
+  status: 'available' | 'booked' | 'disabled';
+}
+
+interface ScreenConfig {
+  id?: string;
+  name: string;
+  theatreId: string;
+  rows: number;
+  seatsPerRow: number;
+  totalSeats: number;
+  categories: Category[];
+  seatMap: SeatData[];
+}
+
+interface ScreenListItem {
+  id: string;
+  name: string;
+  totalSeats: number;
+  theaterId: string;
+  isActive: boolean;
 }
 
 @Component({
@@ -38,70 +58,29 @@ interface Seat {
   styleUrls: ['./screens.component.css']
 })
 export class ScreensComponent implements OnInit {
-  private screenService = inject(ScreenService);
-  private theaterService = inject(TheaterService);
+  private http = inject(HttpClient);
   private alertService = inject(AlertService);
   private destroyRef = inject(DestroyRef);
 
-  theatres = signal<Theater[]>([]);
+  theatres = signal<Theatre[]>([]);
   selectedTheatreId = signal<string>('');
-  selectedScreenNumber = signal<number>(0);
-  
-  loading = signal(false);
-  saving = signal(false);
-  
-  currentScreen = signal<Screen | null>(null);
-  rows = signal(10);
-  seatsPerRow = signal(15);
-  seatLayout = signal<Seat[]>([]);
-  
-  categories = signal<SeatCategory[]>([
-    { id: '1', name: 'Platinum', price: 0, color: '#8B5CF6', description: 'Premium recliner seats' },
-    { id: '2', name: 'Gold', price: 0, color: '#F59E0B', description: 'Comfortable premium seats' },
-    { id: '3', name: 'Silver', price: 0, color: '#6B7280', description: 'Standard seats' }
-  ]);
-  
-  rowRanges = signal<{ categoryId: string; startRow: number; endRow: number }[]>([]);
-  showAddCategory = signal(false);
-  newCategoryName = '';
-  newCategoryPrice = 0;
-  newCategoryColor = '#667eea';
-  
-  selectedTheatre = computed(() => 
-    this.theatres().find(t => t.id === this.selectedTheatreId())
-  );
-  
-  availableScreens = computed(() => {
-    const theatre = this.selectedTheatre();
-    if (!theatre?.totalScreens) return [];
-    return Array.from({ length: theatre.totalScreens }, (_, i) => i + 1);
-  });
-  
-  totalSeats = computed(() => this.rows() * this.seatsPerRow());
-  
-  categoryCounts = computed(() => {
-    const counts = new Map<string, number>();
-    this.seatLayout().forEach(seat => {
-      if (!seat.disabled && !seat.blocked && seat.categoryId) {
-        counts.set(seat.categoryId, (counts.get(seat.categoryId) || 0) + 1);
-      }
-    });
-    return counts;
-  });
-  
-  totalRevenue = computed(() => {
-    let revenue = 0;
-    const counts = this.categoryCounts();
-    counts.forEach((count, catId) => {
-      const cat = this.categories().find(c => c.id === catId);
-      if (cat) revenue += count * cat.price;
-    });
-    return revenue;
-  });
-  
-  availableSeatsCount = computed(() => 
-    this.seatLayout().filter(s => !s.disabled && !s.blocked).length
-  );
+  screens = signal<ScreenListItem[]>([]);
+  selectedScreenId = signal<string>('');
+  screenName = signal<string>('');
+  rows = signal<number>(10);
+  seatsPerRow = signal<number>(15);
+  categories = signal<Category[]>([]);
+  seatMap = signal<SeatData[]>([]);
+  loading = signal<boolean>(false);
+  saving = signal<boolean>(false);
+  hasUnsavedChanges = signal<boolean>(false);
+  validationErrors = signal<string[]>([]);
+  quickAssignCategory = signal<string>('');
+  quickAssignFromRow = signal<number>(0);
+  quickAssignToRow = signal<number>(0);
+
+  selectedTheatre = computed(() => this.theatres().find(t => t.id === this.selectedTheatreId()));
+  totalSeats = computed(() => this.seatMap().filter(s => s.status !== 'disabled').length);
 
   ngOnInit(): void {
     this.loadTheatres();
@@ -109,358 +88,293 @@ export class ScreensComponent implements OnInit {
 
   loadTheatres(): void {
     this.loading.set(true);
-    this.theaterService.getAdminTheaters(false)
-      .pipe(
-        finalize(() => this.loading.set(false)),
-        takeUntilDestroyed(this.destroyRef)
-      )
-      .subscribe({
-        next: (theatres) => this.theatres.set(theatres),
-        error: () => this.alertService.error('Failed to load theatres')
-      });
+    this.http.get<Theatre[]>(`${environment.apiUrl}/admin/theatres`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (data) => { this.theatres.set(data); this.loading.set(false); },
+      error: () => { this.alertService.error('Failed to load theatres'); this.loading.set(false); }
+    });
   }
 
   onTheatreChange(): void {
-    this.selectedScreenNumber.set(0);
-    this.currentScreen.set(null);
-    this.resetSeatLayout();
+    this.selectedScreenId.set('');
+    this.screens.set([]);
+    this.resetConfiguration();
+    if (this.selectedTheatreId()) {
+      this.loadScreens();
+      this.loadDefaultCategories();
+    }
+  }
+
+  loadScreens(): void {
+    const theatreId = this.selectedTheatreId();
+    if (!theatreId) return;
+    this.loading.set(true);
+    this.http.get<ScreenListItem[]>(`${environment.apiUrl}/admin/theatres/${theatreId}/screens`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (data) => { this.screens.set(data); this.loading.set(false); },
+      error: () => { this.alertService.error('Failed to load screens'); this.loading.set(false); }
+    });
+  }
+
+  loadDefaultCategories(): void {
+    const theatre = this.selectedTheatre();
+    if (theatre?.defaultCategories?.length) {
+      this.categories.set(theatre.defaultCategories.map(c => ({ ...c, inheriting: true })));
+    } else {
+      this.categories.set([
+        { id: this.generateId(), name: 'Premium', price: 250, color: '#8B5CF6' },
+        { id: this.generateId(), name: 'Regular', price: 150, color: '#3B82F6' },
+        { id: this.generateId(), name: 'Economy', price: 100, color: '#10B981' }
+      ]);
+    }
   }
 
   onScreenChange(): void {
-    if (!this.selectedScreenNumber()) {
-      this.currentScreen.set(null);
-      this.resetSeatLayout();
-      return;
-    }
-    this.loadSingleScreen();
+    const screenId = this.selectedScreenId();
+    if (!screenId) return;
+    screenId === 'new' ? this.createNewScreen() : this.loadScreenConfig(screenId);
   }
 
-  loadSingleScreen(): void {
-    const theatreId = this.selectedTheatreId();
-    const screenNum = this.selectedScreenNumber();
-    
-    if (!theatreId || !screenNum) return;
+  createNewScreen(): void {
+    this.resetConfiguration();
+    this.loadDefaultCategories();
+    this.screenName.set(`Screen ${this.screens().length + 1}`);
+    this.generateSeatMap();
+    this.hasUnsavedChanges.set(true);
+  }
 
+  loadScreenConfig(screenId: string): void {
     this.loading.set(true);
-    this.screenService.getScreens(theatreId)
-      .pipe(
-        finalize(() => this.loading.set(false)),
-        takeUntilDestroyed(this.destroyRef)
-      )
-      .subscribe({
-        next: (screens) => {
-          const screen = screens.find(s => 
-            s.screenNumber === `Screen ${screenNum}` || 
-            s.screenNumber === `${screenNum}` ||
-            s.screenNumber.includes(`${screenNum}`)
-          );
-          
-          if (screen) {
-            this.currentScreen.set(screen);
-            
-            // Try to load saved layout from localStorage
-            const savedLayout = this.loadLayoutFromLocalStorage(theatreId, screenNum);
-            
-            if (savedLayout) {
-              this.rows.set(savedLayout.rows);
-              this.seatsPerRow.set(savedLayout.seatsPerRow);
-              this.categories.set(savedLayout.categories);
-              this.seatLayout.set(savedLayout.seatLayout);
-              this.alertService.success('Loaded saved screen layout');
-            } else {
-              // Use default layout from screen
-              this.rows.set(screen.seatLayout?.rows || 10);
-              this.seatsPerRow.set(screen.seatLayout?.columns || 15);
-              this.generateSeatLayout();
-            }
-          } else {
-            this.currentScreen.set(null);
-            this.resetSeatLayout();
-            this.generateSeatLayout();
-          }
-        },
-        error: () => {
-          this.alertService.error('Failed to load screen');
-          this.resetSeatLayout();
-        }
-      });
-  }
-
-  loadLayoutFromLocalStorage(theatreId: string, screenNum: number): any {
-    const layoutKey = `screen_layout_${theatreId}_${screenNum}`;
-    
-    try {
-      const saved = localStorage.getItem(layoutKey);
-      if (saved) {
-        return JSON.parse(saved);
-      }
-    } catch (e) {
-      console.error('Failed to load layout from localStorage', e);
-    }
-    
-    return null;
-  }
-
-  updateRows(): void {
-    this.generateSeatLayout();
-  }
-
-  updateSeatsPerRow(): void {
-    this.generateSeatLayout();
-  }
-
-  generateSeatLayout(): void {
-    const seats: Seat[] = [];
-    const existing = this.seatLayout();
-    
-    for (let r = 0; r < this.rows(); r++) {
-      const rowLabel = String.fromCharCode(65 + r);
-      for (let c = 0; c < this.seatsPerRow(); c++) {
-        const seatLabel = `${rowLabel}${c + 1}`;
-        const existingSeat = existing.find(s => s.label === seatLabel);
-        
-        seats.push({
-          row: r,
-          col: c,
-          label: seatLabel,
-          disabled: existingSeat?.disabled || false,
-          categoryId: existingSeat?.categoryId || null,
-          blocked: existingSeat?.blocked || false
-        });
-      }
-    }
-    
-    this.seatLayout.set(seats);
-  }
-
-  applyToRows(startRow: number, endRow: number, categoryId: string): void {
-    this.seatLayout.update(seats => 
-      seats.map(s => (s.row >= startRow && s.row <= endRow) 
-        ? { ...s, categoryId, disabled: false, blocked: false } 
-        : s)
-    );
-  }
-
-  applyToAll(categoryId: string): void {
-    this.seatLayout.update(seats => 
-      seats.map(s => ({ ...s, categoryId, disabled: false, blocked: false }))
-    );
-  }
-
-  clearAll(): void {
-    this.seatLayout.update(seats => 
-      seats.map(s => ({ ...s, categoryId: null, disabled: false, blocked: false }))
-    );
-  }
-
-  getSeatStyle(seat: Seat): any {
-    if (seat.disabled) return { background: '#EF4444', borderColor: '#DC2626' };
-    if (seat.blocked) return { background: '#F59E0B', borderColor: '#D97706' };
-    if (seat.categoryId) {
-      const cat = this.categories().find(c => c.id === seat.categoryId);
-      return cat ? { background: cat.color, borderColor: cat.color } : {};
-    }
-    return { background: '#E5E7EB', borderColor: '#D1D5DB' };
-  }
-
-  getSeatBackground(seat: Seat): string {
-    if (seat.disabled) return '#ef4444';
-    if (seat.categoryId) {
-      const cat = this.categories().find(c => c.id === seat.categoryId);
-      return cat?.color || '#e5e7eb';
-    }
-    return '#e5e7eb';
-  }
-
-  addRowRange(): void {
-    this.rowRanges.update(ranges => [...ranges, { categoryId: '', startRow: 0, endRow: 0 }]);
-  }
-
-  removeRowRange(index: number): void {
-    this.rowRanges.update(ranges => ranges.filter((_, i) => i !== index));
-  }
-
-  applyRowRanges(): void {
-    this.rowRanges().forEach(range => {
-      if (range.categoryId && range.startRow <= range.endRow) {
-        this.applyToRows(range.startRow, range.endRow, range.categoryId);
-      }
-    });
-  }
-
-  getRowLabel(rowIndex: number): string {
-    return String.fromCharCode(65 + rowIndex);
-  }
-
-  getSeatsForRow(rowIndex: number): Seat[] {
-    return this.seatLayout().filter(s => s.row === rowIndex);
-  }
-
-
-
-  saveScreen(): void {
-    const theatreId = this.selectedTheatreId();
-    const screenNum = this.selectedScreenNumber();
-    
-    if (!theatreId || !screenNum) {
-      this.alertService.error('Please select theatre and screen');
-      return;
-    }
-
-    if (this.availableSeatsCount() === 0) {
-      this.alertService.error('Please configure at least one seat category');
-      return;
-    }
-
-    const payload: CreateScreenDto = {
-      screenNumber: `Screen ${screenNum}`,
-      theatreId: theatreId,
-      seatingCapacity: this.availableSeatsCount(),
-      seatLayout: {
-        rows: this.rows(),
-        columns: this.seatsPerRow()
+    this.http.get<ScreenConfig>(`${environment.apiUrl}/admin/screens/${screenId}`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (config) => {
+        this.screenName.set(config.name);
+        this.rows.set(config.rows);
+        this.seatsPerRow.set(config.seatsPerRow);
+        this.categories.set(config.categories);
+        this.seatMap.set(config.seatMap);
+        this.hasUnsavedChanges.set(false);
+        this.loading.set(false);
       },
-      status: 'ACTIVE'
-    };
-
-    this.saving.set(true);
-    const screen = this.currentScreen();
-    const request$ = screen
-      ? this.screenService.updateScreen(screen.id, payload)
-      : this.screenService.createScreen(payload);
-
-    request$
-      .pipe(
-        finalize(() => this.saving.set(false)),
-        takeUntilDestroyed(this.destroyRef)
-      )
-      .subscribe({
-        next: () => {
-          this.alertService.success(`Screen ${screen ? 'updated' : 'created'} successfully`);
-          this.saveLayoutToLocalStorage(theatreId, screenNum);
-          this.loadSingleScreen();
-        },
-        error: (err) => {
-          console.error('Save error:', err);
-          this.alertService.error('Failed to save screen');
-        }
-      });
-  }
-
-  generateLayoutSummary(): string {
-    const categories = this.categories();
-    const counts = this.categoryCounts();
-    let summary = '';
-    
-    categories.forEach(cat => {
-      const count = counts.get(cat.id) || 0;
-      if (count > 0) {
-        summary += `${cat.name}: ${count} seats @ ₹${cat.price}\n`;
-      }
+      error: () => { this.alertService.error('Failed to load screen configuration'); this.loading.set(false); }
     });
-    
-    return summary;
   }
 
-  saveLayoutToLocalStorage(theatreId: string, screenNum: number): void {
-    const layoutKey = `screen_layout_${theatreId}_${screenNum}`;
-    const layoutData = {
-      rows: this.rows(),
-      seatsPerRow: this.seatsPerRow(),
-      categories: this.categories(),
-      seatLayout: this.seatLayout(),
-      totalSeats: this.availableSeatsCount(),
-      totalRevenue: this.totalRevenue(),
-      timestamp: new Date().toISOString()
-    };
-    
-    try {
-      localStorage.setItem(layoutKey, JSON.stringify(layoutData));
-    } catch (e) {
-      console.error('Failed to save layout to localStorage', e);
-    }
-  }
-
-  buildSeatLayoutSections(): any[] {
-    const sections: any[] = [];
-    const categoryGroups = new Map<string, { rows: Set<number> }>();
-    
-    this.seatLayout().forEach(seat => {
-      if (seat.categoryId && !seat.disabled && !seat.blocked) {
-        if (!categoryGroups.has(seat.categoryId)) {
-          categoryGroups.set(seat.categoryId, { rows: new Set() });
-        }
-        categoryGroups.get(seat.categoryId)!.rows.add(seat.row);
-      }
-    });
-    
-    categoryGroups.forEach((data, catId) => {
-      const cat = this.categories().find(c => c.id === catId);
-      if (cat) {
-        const rows = Array.from(data.rows).sort((a, b) => a - b);
-        sections.push({
-          name: cat.name,
-          rowStart: String.fromCharCode(65 + rows[0]),
-          rowEnd: String.fromCharCode(65 + rows[rows.length - 1]),
-          seatsPerRow: this.seatsPerRow(),
-          price: cat.price,
-          type: cat.name.toUpperCase()
-        });
-      }
-    });
-    
-    return sections;
-  }
-
-  resetSeatLayout(): void {
+  resetConfiguration(): void {
+    this.screenName.set('');
     this.rows.set(10);
     this.seatsPerRow.set(15);
-    this.rowRanges.set([]);
-    this.showAddCategory.set(false);
-    this.generateSeatLayout();
+    this.seatMap.set([]);
+    this.hasUnsavedChanges.set(false);
+    this.validationErrors.set([]);
   }
 
-  getCategoryName(catId: string): string {
-    return this.categories().find(c => c.id === catId)?.name || '';
+  onLayoutChange(): void {
+    const currentSeats = this.seatMap() || [];
+    if (currentSeats.length > 0 && !confirm('Changing layout will reset all seat assignments. Continue?')) return;
+    this.generateSeatMap();
+    this.hasUnsavedChanges.set(true);
   }
 
-  updateCategoryPrice(catId: string, price: number): void {
-    this.categories.update(cats => 
-      cats.map(c => c.id === catId ? { ...c, price } : c)
-    );
+  generateSeatMap(): void {
+    const seats: SeatData[] = [];
+    for (let r = 0; r < this.rows(); r++) {
+      for (let c = 0; c < this.seatsPerRow(); c++) {
+        const rowLabel = this.getRowLabel(r);
+        seats.push({ 
+          seatId: `${rowLabel}${c + 1}`, 
+          label: `${rowLabel}${c + 1}`, 
+          row: r, 
+          col: c, 
+          categoryId: null, 
+          status: 'available'
+        });
+      }
+    }
+    this.seatMap.set(seats);
   }
 
-  toggleSeatDisabled(seat: Seat): void {
-    this.seatLayout.update(seats => 
-      seats.map(s => s.label === seat.label 
-        ? { ...s, disabled: !s.disabled, categoryId: s.disabled ? s.categoryId : null } 
-        : s)
-    );
+  getRowLabel(index: number): string {
+    return String.fromCharCode(65 + index);
+  }
+
+  getRowSeats(row: number): SeatData[] {
+    return this.seatMap().filter(s => s.row === row);
   }
 
   addCategory(): void {
-    const newCat: SeatCategory = {
-      id: Date.now().toString(),
-      name: this.newCategoryName,
-      price: this.newCategoryPrice,
-      color: this.newCategoryColor,
-      description: ''
+    const newCat: Category = {
+      id: this.generateId(),
+      name: 'New Category',
+      price: 100,
+      color: '#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0')
     };
     this.categories.update(cats => [...cats, newCat]);
-    this.showAddCategory.set(false);
-    this.newCategoryName = '';
-    this.newCategoryPrice = 0;
-    this.newCategoryColor = '#667eea';
+    this.hasUnsavedChanges.set(true);
   }
 
-  deleteCategory(catId: string): void {
-    if (this.categories().length <= 1) {
-      this.alertService.error('At least one category is required');
-      return;
+  updateCategory(id: string, field: keyof Category, value: any): void {
+    this.categories.update(cats => cats.map(c => {
+      if (c.id === id) {
+        const updated = { ...c, [field]: value };
+        delete updated.inheriting;
+        return updated;
+      }
+      return c;
+    }));
+    if (field === 'price') this.updateSeatPrices(id);
+    this.hasUnsavedChanges.set(true);
+  }
+
+  deleteCategory(id: string): void {
+    if (this.categories().length <= 1) { 
+      this.alertService.error('At least one category is required'); 
+      return; 
     }
-    this.categories.update(cats => cats.filter(c => c.id !== catId));
-    this.seatLayout.update(seats => 
-      seats.map(s => s.categoryId === catId ? { ...s, categoryId: null } : s)
-    );
+    if (!confirm('Delete this category? Seats assigned to it will be unassigned.')) return;
+    this.categories.update(cats => cats.filter(c => c.id !== id));
+    this.seatMap.update(seats => seats.map(s => 
+      s.categoryId === id ? { ...s, categoryId: null } : s
+    ));
+    this.hasUnsavedChanges.set(true);
+  }
+
+  applyQuickAssign(): void {
+    const categoryId = this.quickAssignCategory();
+    const fromRow = this.quickAssignFromRow();
+    const toRow = this.quickAssignToRow();
+    if (!categoryId) { 
+      this.alertService.error('Please select a category'); 
+      return; 
+    }
+    if (fromRow > toRow) { 
+      this.alertService.error('From row must be less than or equal to To row'); 
+      return; 
+    }
+    const category = this.categories().find(c => c.id === categoryId);
+    if (!category) return;
+    this.seatMap.update(seats => seats.map(s => 
+      (s.row >= fromRow && s.row <= toRow && s.status !== 'booked' && s.status !== 'disabled') 
+        ? { ...s, categoryId, status: 'available' } 
+        : s
+    ));
+    this.hasUnsavedChanges.set(true);
+    this.alertService.success(`Applied ${category.name} to rows ${this.getRowLabel(fromRow)}-${this.getRowLabel(toRow)}`);
+  }
+
+  assignCategory(seat: SeatData, categoryId: string): void {
+    if (seat.status === 'booked' || seat.status === 'disabled') return;
+    this.seatMap.update(seats => seats.map(s => 
+      s.seatId === seat.seatId ? { ...s, categoryId } : s
+    ));
+    this.hasUnsavedChanges.set(true);
+  }
+
+  toggleSeatDisabled(seat: SeatData): void {
+    if (seat.status === 'booked') return;
+    this.seatMap.update(seats => seats.map(s => 
+      s.seatId === seat.seatId 
+        ? { ...s, status: s.status === 'disabled' ? 'available' : 'disabled', categoryId: s.status === 'disabled' ? s.categoryId : null } 
+        : s
+    ));
+    this.hasUnsavedChanges.set(true);
+  }
+
+  getSeatStyle(seat: SeatData): any {
+    if (seat.status === 'booked') return { background: '#6B7280', cursor: 'not-allowed' };
+    if (seat.status === 'disabled') return { background: '#EF4444', cursor: 'pointer' };
+    if (seat.categoryId) {
+      const categories = this.categories();
+      if (categories) {
+        const cat = categories.find(c => c.id === seat.categoryId);
+        return { background: cat?.color || '#E5E7EB', cursor: 'pointer' };
+      }
+    }
+    return { background: '#E5E7EB', cursor: 'pointer' };
+  }
+
+  getSeatPrice(seat: SeatData): number {
+    const categories = this.categories();
+    if (!categories) return 0;
+    const cat = categories.find(c => c.id === seat.categoryId);
+    return cat?.price || 0;
+  }
+
+  getSeatAriaLabel(seat: SeatData): string {
+    const categories = this.categories();
+    if (!categories) return `Seat ${seat.label}`;
+    const cat = categories.find(c => c.id === seat.categoryId);
+    const categoryName = cat?.name || 'Unassigned';
+    const price = cat?.price || 0;
+    return `Seat ${seat.label}, ${categoryName}, Price: ₹${price}, Status: ${seat.status}`;
+  }
+
+  updateSeatPrices(categoryId: string): void {
+    const cat = this.categories().find(c => c.id === categoryId);
+    if (!cat) return;
+    this.seatMap.update(seats => seats.map(s => 
+      s.categoryId === categoryId ? { ...s } : s
+    ));
+  }
+
+  validate(): boolean {
+    const errors: string[] = [];
+    if (!this.selectedTheatreId()) errors.push('Please select a theatre');
+    if (!this.screenName().trim()) errors.push('Screen name is required');
+    if (this.rows() < 1 || this.rows() > 26) errors.push('Rows must be between 1 and 26');
+    if (this.seatsPerRow() < 1 || this.seatsPerRow() > 50) errors.push('Seats per row must be between 1 and 50');
+    if (this.categories().length === 0) errors.push('At least one category is required');
+    if (this.categories().some(c => !c.name.trim())) errors.push('All categories must have a name');
+    if (this.categories().some(c => c.price <= 0)) errors.push('All category prices must be greater than 0');
+    if (this.totalSeats() === 0) errors.push('At least one seat must be enabled');
+    this.validationErrors.set(errors);
+    return errors.length === 0;
+  }
+
+  saveScreen(): void {
+    if (!this.validate()) { 
+      this.alertService.error('Please fix validation errors'); 
+      return; 
+    }
+    this.saving.set(true);
+    const config: ScreenConfig = { 
+      name: this.screenName(), 
+      theatreId: this.selectedTheatreId(), 
+      rows: this.rows(), 
+      seatsPerRow: this.seatsPerRow(), 
+      totalSeats: this.totalSeats(), 
+      categories: this.categories().map(c => ({ id: c.id, name: c.name, price: c.price, color: c.color })), 
+      seatMap: this.seatMap() 
+    };
+    const screenId = this.selectedScreenId();
+    const request = screenId && screenId !== 'new' 
+      ? this.http.put<ScreenConfig>(`${environment.apiUrl}/admin/screens/${screenId}`, config) 
+      : this.http.post<ScreenConfig>(`${environment.apiUrl}/admin/screens`, config);
+    request.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (response) => {
+        this.alertService.success('Screen saved successfully');
+        this.hasUnsavedChanges.set(false);
+        this.saving.set(false);
+        if (response.id && screenId === 'new') {
+          this.selectedScreenId.set(response.id);
+          this.loadScreens();
+        }
+      },
+      error: (err: HttpErrorResponse) => {
+        this.alertService.error(err.error?.message || 'Failed to save screen');
+        this.saving.set(false);
+      }
+    });
+  }
+
+  resetToSaved(): void {
+    if (!confirm('Discard all unsaved changes?')) return;
+    const screenId = this.selectedScreenId();
+    if (screenId && screenId !== 'new') {
+      this.loadScreenConfig(screenId);
+    } else {
+      this.createNewScreen();
+    }
+  }
+
+  private generateId(): string {
+    return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
   }
 }

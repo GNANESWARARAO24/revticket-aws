@@ -99,7 +99,7 @@ export class BookingsReportComponent implements OnInit {
   }
 
   loadTheaters(): void {
-    this.theaterService.getAllTheaters().subscribe({
+    this.theaterService.getAllTheaters(false).subscribe({
       next: (theaters) => this.theaters.set(theaters),
       error: () => {}
     });
@@ -195,13 +195,17 @@ export class BookingsReportComponent implements OnInit {
   }
 
   deleteBooking(booking: Booking): void {
-    if (!confirm(`Delete booking ${booking.id.substring(0, 8)}?`)) return;
-    this.http.delete(`${environment.apiUrl}/bookings/${booking.id}`).subscribe({
+    if (!confirm(`Are you sure you want to delete booking #${booking.id.substring(0, 8)}?\n\nCustomer: ${booking.customerName}\nMovie: ${booking.movieTitle}\nSeats: ${booking.seats.join(', ')}`)) return;
+    
+    this.http.delete(`${environment.apiUrl}/admin/bookings/${booking.id}`).subscribe({
       next: () => {
-        this.alertService.success('Booking deleted!');
+        this.alertService.success('Booking deleted successfully!');
         this.loadData();
       },
-      error: () => this.alertService.error('Failed to delete booking')
+      error: (err) => {
+        console.error('Delete error:', err);
+        this.alertService.error('Failed to delete booking. Please try again.');
+      }
     });
   }
 
@@ -214,10 +218,48 @@ export class BookingsReportComponent implements OnInit {
   }
 
   getStartIndex(): number {
-    return this.currentPage() * this.pageSize() + 1;
+    return this.totalElements() === 0 ? 0 : this.currentPage() * this.pageSize() + 1;
   }
 
   getEndIndex(): number {
     return Math.min((this.currentPage() + 1) * this.pageSize(), this.totalElements());
+  }
+
+  getStatusClass(status: string): string {
+    return `status-${status.toLowerCase()}`;
+  }
+
+  formatDate(date: string): string {
+    return new Date(date).toLocaleDateString('en-IN', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  }
+
+  getScreenLabel(screen: string): string {
+    if (!screen) return 'N/A';
+    if (screen.length === 36 && screen.includes('-')) {
+      return 'Screen 1';
+    }
+    return screen;
+  }
+
+  getSeatLabels(seats: string[]): string {
+    if (!seats || seats.length === 0) return 'N/A';
+    
+    const seatLabels = seats.map(seat => {
+      if (seat.length === 36 && seat.includes('-')) {
+        const index = seats.indexOf(seat);
+        const row = String.fromCharCode(65 + Math.floor(index / 10));
+        const col = (index % 10) + 1;
+        return `${row}${col}`;
+      }
+      return seat;
+    });
+    
+    return seatLabels.join(', ');
   }
 }

@@ -32,13 +32,23 @@ export class ManageMoviesComponent implements OnInit {
   availableGenres = computed(() => {
     const genres = new Set<string>();
     this.movies().forEach(movie => {
-      movie.genre?.forEach(g => genres.add(g));
+      if (movie.genre && Array.isArray(movie.genre)) {
+        movie.genre.forEach(g => {
+          if (g && g.trim()) genres.add(g.trim());
+        });
+      }
     });
     return Array.from(genres).sort();
   });
 
+  genreCount = computed(() => {
+    const genre = this.selectedGenre();
+    if (!genre) return 0;
+    return this.movies().filter(m => m.genre?.includes(genre)).length;
+  });
+
   filteredMovies = computed(() => {
-    const search = this.searchTerm().toLowerCase();
+    const search = this.searchTerm().toLowerCase().trim();
     const genre = this.selectedGenre();
     const showInactive = this.showInactive();
     const sortField = this.sortField();
@@ -47,7 +57,9 @@ export class ManageMoviesComponent implements OnInit {
     let filtered = this.movies().filter(movie => {
       const matchesSearch = !search || 
         movie.title?.toLowerCase().includes(search) ||
-        (movie.description && movie.description.toLowerCase().includes(search));
+        movie.description?.toLowerCase().includes(search) ||
+        movie.director?.toLowerCase().includes(search) ||
+        movie.language?.toLowerCase().includes(search);
       
       const matchesGenre = !genre || 
         (movie.genre && movie.genre.includes(genre));
@@ -67,6 +79,8 @@ export class ManageMoviesComponent implements OnInit {
           bVal = new Date(bVal).getTime();
         }
 
+        if (aVal == null) return 1;
+        if (bVal == null) return -1;
         if (aVal < bVal) return sortDir === 'asc' ? -1 : 1;
         if (aVal > bVal) return sortDir === 'asc' ? 1 : -1;
         return 0;
@@ -100,12 +114,13 @@ export class ManageMoviesComponent implements OnInit {
     this.loading.set(true);
     this.movieService.getAdminMovies().subscribe({
       next: (movies) => {
-        this.movies.set(movies);
+        this.movies.set(movies || []);
         this.loading.set(false);
       },
       error: (err) => {
         console.error('Error loading movies:', err);
-        this.alertService.error('Failed to load movies');
+        this.alertService.error('Failed to load movies. Please try again.');
+        this.movies.set([]);
         this.loading.set(false);
       }
     });
@@ -126,12 +141,14 @@ export class ManageMoviesComponent implements OnInit {
       this.deletingId.set(movie.id);
       this.movieService.deleteMovie(movie.id).subscribe({
         next: () => {
-          this.alertService.success('Movie deleted successfully!');
-          this.loadMovies();
+          this.alertService.success(`"${movie.title}" deleted successfully!`);
+          const updatedMovies = this.movies().filter(m => m.id !== movie.id);
+          this.movies.set(updatedMovies);
           this.deletingId.set(null);
         },
-        error: () => {
-          this.alertService.error('Failed to delete movie');
+        error: (err) => {
+          console.error('Delete error:', err);
+          this.alertService.error('Failed to delete movie. It may have active showtimes.');
           this.deletingId.set(null);
         }
       });
@@ -166,11 +183,6 @@ export class ManageMoviesComponent implements OnInit {
 
     this.togglingStatusId.set(movie.id);
     
-    // Optimistic update
-    const updatedMovies = [...this.movies()];
-    updatedMovies[movieIndex] = { ...movie, isActive: !previousState };
-    this.movies.set(updatedMovies);
-
     this.movieService.toggleMovieStatus(movie.id).subscribe({
       next: (updatedMovie) => {
         this.togglingStatusId.set(null);
@@ -180,18 +192,13 @@ export class ManageMoviesComponent implements OnInit {
           movies[idx] = updatedMovie;
           this.movies.set(movies);
         }
-        this.alertService.success(`Movie ${updatedMovie.isActive ? 'activated' : 'deactivated'} successfully!`);
+        const status = updatedMovie.isActive ? 'activated' : 'deactivated';
+        this.alertService.success(`"${movie.title}" ${status} successfully!`);
       },
-      error: () => {
+      error: (err) => {
+        console.error('Toggle status error:', err);
         this.togglingStatusId.set(null);
-        // Rollback on error
-        const movies = [...this.movies()];
-        const idx = movies.findIndex(m => m.id === movie.id);
-        if (idx !== -1) {
-          movies[idx] = { ...movie, isActive: previousState };
-          this.movies.set(movies);
-        }
-        this.alertService.error('Failed to update movie status');
+        this.alertService.error('Failed to update movie status. Please try again.');
       }
     });
   }

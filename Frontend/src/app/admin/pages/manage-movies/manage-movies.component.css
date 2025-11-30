@@ -109,11 +109,37 @@
   transform: translateY(-50%);
   font-size: 1rem;
   color: #9ca3af;
+  pointer-events: none;
+}
+
+.clear-btn {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: #e5e7eb;
+  border: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  color: #6b7280;
+  transition: all 200ms ease;
+}
+
+.clear-btn:hover {
+  background: #d1d5db;
+  color: #1f2937;
+  transform: translateY(-50%) scale(1.1);
 }
 
 .search-box input {
   width: 100%;
-  padding: 11px 16px 11px 44px;
+  padding: 11px 44px 11px 44px;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
   font-size: 0.9rem;
@@ -143,7 +169,7 @@
   color: #1f2937;
   cursor: pointer;
   transition: all 200ms ease;
-  min-width: 140px;
+  min-width: 160px;
 }
 
 .filter-select:focus {
@@ -151,6 +177,28 @@
   border-color: #667eea;
   background: #fff;
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.btn-clear-filters {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  padding: 11px 18px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: all 200ms ease;
+  background: #fff;
+  color: #6b7280;
+}
+
+.btn-clear-filters:hover {
+  background: #f9fafb;
+  border-color: #d1d5db;
+  color: #1f2937;
+  transform: translateY(-1px);
 }
 
 /* ========================================
@@ -234,37 +282,58 @@
 }
 
 .col-genre {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  color: #6b7280;
 }
 
 /* ========================================
    PILLS (RATING & STATUS)
 ======================================== */
 .rating-pill {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   padding: 6px 12px;
   border-radius: 6px;
   font-size: 0.8rem;
   font-weight: 700;
-  background: #fef3c7;
+  background: linear-gradient(135deg, #fef3c7, #fde68a);
   color: #92400e;
+  box-shadow: 0 1px 3px rgba(146, 64, 14, 0.1);
+}
+
+.rating-pill::before {
+  content: '⭐';
+  font-size: 0.9rem;
 }
 
 .status-pill {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   padding: 6px 14px;
   border-radius: 6px;
   font-size: 0.8rem;
   font-weight: 700;
-  background: #fee2e2;
+  background: linear-gradient(135deg, #fee2e2, #fecaca);
   color: #991b1b;
+  box-shadow: 0 1px 3px rgba(153, 27, 27, 0.1);
+}
+
+.status-pill::before {
+  content: '❌';
+  font-size: 0.75rem;
 }
 
 .status-pill.active {
-  background: #d1fae5;
+  background: linear-gradient(135deg, #d1fae5, #a7f3d0);
   color: #065f46;
+  box-shadow: 0 1px 3px rgba(6, 95, 70, 0.1);
+}
+
+.status-pill.active::before {
+  content: '✅';
 }
 
 /* ========================================
@@ -330,6 +399,19 @@
   transform: none;
 }
 
+.action-btn.loading {
+  pointer-events: none;
+}
+
+.btn-spinner {
+  display: inline-block;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
 /* ========================================
    LOADING & EMPTY STATES
 ======================================== */
@@ -366,30 +448,33 @@
 
 .empty-state {
   text-align: center;
-  padding: 60px 40px;
-  background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-  border: 1px solid #e5e7eb;
+  padding: 80px 40px;
+  background: linear-gradient(135deg, #f9fafb, #ffffff);
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  border: 2px dashed #e5e7eb;
 }
 
 .empty-icon {
-  font-size: 4rem;
-  opacity: 0.3;
-  margin-bottom: 16px;
+  font-size: 5rem;
+  opacity: 0.4;
+  margin-bottom: 20px;
+  filter: grayscale(0.3);
 }
 
 .empty-state h3 {
-  font-size: 1.25rem;
-  font-weight: 700;
+  font-size: 1.4rem;
+  font-weight: 800;
   color: #0f172a;
-  margin: 0 0 8px 0;
+  margin: 0 0 12px 0;
+  letter-spacing: -0.5px;
 }
 
 .empty-state p {
   color: #6b7280;
-  font-size: 0.9rem;
-  margin: 0 0 24px 0;
+  font-size: 1rem;
+  margin: 0 0 28px 0;
+  font-weight: 500;
 }
 
 /* ========================================
@@ -496,6 +581,7 @@
   .page-header {
     flex-direction: column;
     align-items: flex-start;
+    gap: 16px;
   }
 
   .page-title {
@@ -504,12 +590,14 @@
 
   .header-actions {
     width: 100%;
+    flex-wrap: wrap;
   }
 
   .btn-primary,
   .btn-secondary {
     flex: 1;
     justify-content: center;
+    min-width: 140px;
   }
 
   .filters-section {
@@ -520,7 +608,8 @@
     min-width: 100%;
   }
 
-  .filter-select {
+  .filter-select,
+  .btn-clear-filters {
     width: 100%;
   }
 }

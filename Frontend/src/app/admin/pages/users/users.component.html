@@ -1,8 +1,10 @@
 <div class="page-wrapper">
   <!-- HEADER -->
   <header class="page-header">
-    <h1 class="page-title">Manage Users</h1>
-    <p class="page-subtitle">View and manage all registered users</p>
+    <div class="header-left">
+      <h1 class="page-title">👥 Manage Users</h1>
+      <p class="page-subtitle">{{ filteredUsers().length }} of {{ users().length }} users</p>
+    </div>
   </header>
 
   <!-- FILTERS -->
@@ -18,19 +20,31 @@
         placeholder="Search by name, email, or mobile..." 
         [value]="searchTerm()"
         (input)="onSearch($any($event.target).value)">
+      @if (searchTerm()) {
+      <button class="clear-btn" (click)="searchTerm.set(''); applyFilters()" title="Clear search">
+        ✕
+      </button>
+      }
     </div>
     
     <select class="filter-dropdown" [value]="roleFilter()" (change)="onRoleFilterChange($any($event.target).value)">
-      <option value="ALL">All Roles</option>
-      <option value="ADMIN">Admin</option>
-      <option value="USER">User</option>
+      <option value="ALL">👤 All Roles</option>
+      <option value="ADMIN">🔑 Admin</option>
+      <option value="USER">👤 User</option>
     </select>
 
     <select class="filter-dropdown" [value]="statusFilter()" (change)="onStatusFilterChange($any($event.target).value)">
-      <option value="ALL">All Status</option>
-      <option value="ACTIVE">Active</option>
-      <option value="BLOCKED">Blocked</option>
+      <option value="ALL">🔘 All Status</option>
+      <option value="ACTIVE">✅ Active</option>
+      <option value="BLOCKED">❌ Blocked</option>
     </select>
+
+    @if (searchTerm() || roleFilter() !== 'ALL' || statusFilter() !== 'ALL') {
+    <button class="btn-clear-filters" (click)="searchTerm.set(''); roleFilter.set('ALL'); statusFilter.set('ALL'); applyFilters()">
+      <span>🔄</span>
+      <span>Clear</span>
+    </button>
+    }
   </section>
 
   <!-- LOADING -->
@@ -46,7 +60,15 @@
     <div class="empty-state">
       <div class="empty-icon">👥</div>
       <h3>No Users Found</h3>
-      <p>No users match your current filters</p>
+      @if (searchTerm() || roleFilter() !== 'ALL' || statusFilter() !== 'ALL') {
+        <p>No users match your current filters</p>
+        <button class="btn-clear-filters" (click)="searchTerm.set(''); roleFilter.set('ALL'); statusFilter.set('ALL'); applyFilters()">
+          <span>🔄</span>
+          <span>Clear All Filters</span>
+        </button>
+      } @else {
+        <p>No users registered yet</p>
+      }
     </div>
   }
 
@@ -81,12 +103,12 @@
           <div class="col-mobile">{{ user.phone || 'N/A' }}</div>
           <div class="col-role">
             <span class="role-badge" [class.admin]="user.role === 'ADMIN'" [class.user]="user.role === 'USER'">
-              {{ user.role }}
+              {{ user.role === 'ADMIN' ? '🔑 ADMIN' : '👤 USER' }}
             </span>
           </div>
           <div class="col-status">
             <span class="status-badge" [class.active]="user.isActive !== false" [class.inactive]="user.isActive === false">
-              {{ user.isActive !== false ? 'Active' : 'Inactive' }}
+              {{ user.isActive !== false ? '✅ Active' : '❌ Blocked' }}
             </span>
           </div>
           <div class="col-joined">

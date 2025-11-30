@@ -39,14 +39,15 @@ export class UsersComponent implements OnInit {
     this.loading.set(true);
     this.adminUserService.getAllUsers().subscribe({
       next: (users) => {
-        console.log('Users loaded:', users);
-        this.users.set(users);
+        this.users.set(users || []);
         this.applyFilters();
         this.loading.set(false);
       },
       error: (err) => {
         console.error('Failed to load users:', err);
-        this.alertService.error('Failed to load users');
+        this.alertService.error('Failed to load users. Please try again.');
+        this.users.set([]);
+        this.filteredUsers.set([]);
         this.loading.set(false);
       }
     });
@@ -55,8 +56,7 @@ export class UsersComponent implements OnInit {
   applyFilters(): void {
     let filtered = [...this.users()];
 
-    // Search filter
-    const term = this.searchTerm().toLowerCase();
+    const term = this.searchTerm().toLowerCase().trim();
     if (term) {
       filtered = filtered.filter(user =>
         user.name?.toLowerCase().includes(term) ||
@@ -65,18 +65,15 @@ export class UsersComponent implements OnInit {
       );
     }
 
-    // Role filter
     if (this.roleFilter() !== 'ALL') {
       filtered = filtered.filter(user => user.role === this.roleFilter());
     }
 
-    // Status filter
     if (this.statusFilter() !== 'ALL') {
       const isActive = this.statusFilter() === 'ACTIVE';
       filtered = filtered.filter(user => user.isActive === isActive);
     }
 
-    // Sort
     filtered.sort((a, b) => {
       let aVal: any, bVal: any;
       
@@ -97,6 +94,8 @@ export class UsersComponent implements OnInit {
           return 0;
       }
 
+      if (aVal == null) return 1;
+      if (bVal == null) return -1;
       if (aVal < bVal) return this.sortOrder() === 'asc' ? -1 : 1;
       if (aVal > bVal) return this.sortOrder() === 'asc' ? 1 : -1;
       return 0;
@@ -153,16 +152,18 @@ export class UsersComponent implements OnInit {
   toggleRole(user: User): void {
     const newRole = user.role === 'ADMIN' ? 'USER' : 'ADMIN';
     
-    if (!confirm(`Change ${user.name}'s role to ${newRole}?`)) return;
+    if (!confirm(`Change "${user.name}"'s role to ${newRole}?`)) return;
 
     this.updatingRoleId.set(user.id);
     this.adminUserService.updateUserRole(user.id, newRole).subscribe({
       next: () => {
-        this.alertService.success('User role updated successfully');
+        this.alertService.success(`"${user.name}" role updated to ${newRole}`);
+        this.users.update(users => users.map(u => u.id === user.id ? { ...u, role: newRole } : u));
+        this.applyFilters();
         this.updatingRoleId.set(null);
-        this.loadUsers();
       },
-      error: () => {
+      error: (err) => {
+        console.error('Update role error:', err);
         this.alertService.error('Failed to update user role');
         this.updatingRoleId.set(null);
       }
@@ -171,31 +172,35 @@ export class UsersComponent implements OnInit {
 
   toggleUserStatus(user: User): void {
     const newStatus = user.isActive ? 'BLOCKED' : 'ACTIVE';
-    const action = user.isActive ? 'block' : 'unblock';
+    const action = user.isActive ? 'block' : 'activate';
     
-    if (!confirm(`Are you sure you want to ${action} this user?`)) return;
+    if (!confirm(`Are you sure you want to ${action} "${user.name}"?`)) return;
 
     this.adminUserService.updateUserStatus(user.id, newStatus).subscribe({
       next: () => {
-        this.alertService.success(`User ${action}ed successfully`);
-        this.loadUsers();
+        this.alertService.success(`"${user.name}" ${action}ed successfully`);
+        this.users.update(users => users.map(u => u.id === user.id ? { ...u, isActive: !user.isActive } : u));
+        this.applyFilters();
       },
-      error: () => {
+      error: (err) => {
+        console.error('Update status error:', err);
         this.alertService.error(`Failed to ${action} user`);
       }
     });
   }
 
   deleteUser(user: User): void {
-    if (!confirm(`Are you sure you want to delete ${user.name}? This action cannot be undone.`)) return;
+    if (!confirm(`Are you sure you want to delete "${user.name}"?\n\nThis action cannot be undone and will remove all user data.`)) return;
 
     this.adminUserService.deleteUser(user.id).subscribe({
       next: () => {
-        this.alertService.success('User deleted successfully');
-        this.loadUsers();
+        this.alertService.success(`"${user.name}" deleted successfully`);
+        this.users.update(users => users.filter(u => u.id !== user.id));
+        this.applyFilters();
       },
-      error: () => {
-        this.alertService.error('Failed to delete user');
+      error: (err) => {
+        console.error('Delete user error:', err);
+        this.alertService.error('Failed to delete user. User may have active bookings.');
       }
     });
   }

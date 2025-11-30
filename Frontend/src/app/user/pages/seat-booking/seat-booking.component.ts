@@ -14,6 +14,8 @@ interface Seat {
   type: string;
   isBooked: boolean;
   isHeld: boolean;
+  isDisabled?: boolean;
+  isBlocked?: boolean;
 }
 
 interface Showtime {
@@ -57,20 +59,39 @@ export class SeatBookingComponent implements OnInit {
   showtimeId = '';
 
   seatRows = computed(() => {
+    const allSeats = this.seats();
+    if (allSeats.length === 0) return [];
+    
+    // Group seats by row
     const seatMap = new Map<string, Seat[]>();
-    this.seats().forEach(seat => {
+    allSeats.forEach(seat => {
       if (!seatMap.has(seat.row)) {
         seatMap.set(seat.row, []);
       }
       seatMap.get(seat.row)!.push(seat);
     });
     
+    // Find max seats per row to create uniform grid
+    let maxSeatsInRow = 0;
+    seatMap.forEach(seats => {
+      const maxNum = Math.max(...seats.map(s => s.number));
+      if (maxNum > maxSeatsInRow) maxSeatsInRow = maxNum;
+    });
+    
+    // Create layout with gaps for missing seats (aisles)
     return Array.from(seatMap.entries())
       .sort(([a], [b]) => a.localeCompare(b))
-      .map(([row, seats]) => ({
-        row,
-        seats: seats.sort((a, b) => a.number - b.number)
-      }));
+      .map(([row, seats]) => {
+        const sortedSeats = seats.sort((a, b) => a.number - b.number);
+        const seatLayout: (Seat | null)[] = [];
+        
+        for (let i = 1; i <= maxSeatsInRow; i++) {
+          const seat = sortedSeats.find(s => s.number === i);
+          seatLayout.push(seat || null);
+        }
+        
+        return { row, seats: seatLayout };
+      });
   });
 
   selectedSeatsList = computed(() => Array.from(this.selectedSeats()));
@@ -87,27 +108,18 @@ export class SeatBookingComponent implements OnInit {
     const selected = this.selectedSeats();
     return this.seats()
       .filter(seat => selected.has(`${seat.row}${seat.number}`))
-      .reduce((total, seat) => total + seat.price, 0);
+      .reduce((sum, seat) => sum + seat.price, 0);
   });
 
   ngOnInit() {
-    const movieSlug = this.route.snapshot.paramMap.get('movieSlug');
-    const showtimeSlug = this.route.snapshot.paramMap.get('showtimeSlug');
+    const showtimeId = this.route.snapshot.paramMap.get('showtimeId');
     
-    if (!movieSlug || !showtimeSlug) {
+    if (!showtimeId) {
       this.router.navigate(['/user/home']);
       return;
     }
     
-    // Extract showtime ID from slug (format: theater-name-date-time-uuid)
-    // UUID is the last 36 characters (8-4-4-4-12 format)
-    if (showtimeSlug.length >= 36) {
-      this.showtimeId = showtimeSlug.slice(-36); // Get last 36 chars (full UUID)
-    } else {
-      this.router.navigate(['/user/home']);
-      return;
-    }
-    
+    this.showtimeId = showtimeId;
     this.loadData();
   }
 
@@ -160,24 +172,48 @@ export class SeatBookingComponent implements OnInit {
 
 
   toggleSeat(seat: Seat) {
-    if (seat.isBooked || seat.isHeld) return;
+    // Prevent selection of booked, held, disabled, or blocked seats
+    if (seat.isBooked || seat.isHeld || seat.isDisabled || seat.isBlocked) {
+      console.log('Seat cannot be selected:', seat);
+      return;
+    }
     
     const seatKey = `${seat.row}${seat.number}`;
     const selected = new Set(this.selectedSeats());
     
     if (selected.has(seatKey)) {
       selected.delete(seatKey);
+      console.log('Seat deselected:', seatKey);
     } else if (selected.size < 10) {
       selected.add(seatKey);
+      console.log('Seat selected:', seatKey);
+    } else {
+      console.log('Maximum 10 seats can be selected');
     }
     
     this.selectedSeats.set(selected);
   }
 
   getSeatClass(seat: Seat): string {
+    // Priority order: disabled > blocked > booked/held > selected > available
+    if (seat.isDisabled) return 'disabled';
+    if (seat.isBlocked) return 'blocked';
     if (seat.isBooked || seat.isHeld) return 'booked';
+    
     const seatKey = `${seat.row}${seat.number}`;
     return this.selectedSeats().has(seatKey) ? 'selected' : 'available';
+  }
+
+  isSeatClickable(seat: Seat): boolean {
+    return !seat.isBooked && !seat.isHeld && !seat.isDisabled && !seat.isBlocked;
+  }
+
+  getSeatTooltip(seat: Seat): string {
+    if (seat.isDisabled) return 'This seat is disabled';
+    if (seat.isBlocked) return 'This seat is blocked';
+    if (seat.isBooked) return 'This seat is already booked';
+    if (seat.isHeld) return 'This seat is on hold';
+    return `${seat.row}${seat.number} - ₹${seat.price}`;
   }
 
   proceedToPayment() {
@@ -214,11 +250,8 @@ export class SeatBookingComponent implements OnInit {
     console.log('Setting booking draft:', bookingDraft);
     this.bookingService.setCurrentBooking(bookingDraft);
     
-    const movieSlug = this.createSlug(showtime.movie?.title || 'movie');
-    const showtimeSlug = this.createShowtimeSlug(showtime);
-    
-    console.log('Navigating to payment:', ['/user/payment', movieSlug, showtimeSlug]);
-    this.router.navigate(['/user/payment', movieSlug, showtimeSlug]);
+    console.log('Navigating to payment:', ['/user/payment', this.showtimeId]);
+    this.router.navigate(['/user/payment', this.showtimeId]);
   }
 
   goBack() {
@@ -248,17 +281,5 @@ export class SeatBookingComponent implements OnInit {
   getMovieLabel(): string {
     const showtime = this.showtime();
     return showtime?.movie?.title || 'Movie';
-  }
-  
-  private createSlug(title: string): string {
-    return title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-  }
-  
-  private createShowtimeSlug(showtime: Showtime): string {
-    const theaterSlug = (showtime.theater?.name || 'theater').toLowerCase().replace(/[^a-z0-9]+/g, '-');
-    const date = new Date(showtime.showDateTime);
-    const timeStr = date.toTimeString().slice(0, 5).replace(':', '');
-    const dateStr = date.toISOString().slice(0, 10);
-    return `${theaterSlug}-${dateStr}-${timeStr}-${showtime.id}`;
   }
 }

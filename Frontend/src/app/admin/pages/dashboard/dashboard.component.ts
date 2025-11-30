@@ -76,10 +76,38 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.adminService.getRevenueData(period).subscribe({
       next: (data) => {
         const grouped = this.groupRevenueData(data, period);
-        this.revenueData.set(grouped);
+        this.revenueData.set(grouped.length > 0 ? grouped : this.generateEmptyData(period));
       },
-      error: () => {}
+      error: () => {
+        this.revenueData.set(this.generateEmptyData(period));
+      }
     });
+  }
+
+  generateEmptyData(period: number): RevenueData[] {
+    const data: RevenueData[] = [];
+    const today = new Date();
+    
+    if (period === 7) {
+      for (let i = 6; i >= 0; i--) {
+        const date = new Date(today);
+        date.setDate(today.getDate() - i);
+        data.push({ date: date.toISOString().split('T')[0], revenue: 0 });
+      }
+    } else if (period === 30) {
+      for (let i = 29; i >= 0; i--) {
+        const date = new Date(today);
+        date.setDate(today.getDate() - i);
+        data.push({ date: date.toISOString().split('T')[0], revenue: 0 });
+      }
+    } else if (period === 365) {
+      for (let i = 11; i >= 0; i--) {
+        const date = new Date(today);
+        date.setMonth(today.getMonth() - i);
+        data.push({ date: date.toISOString().split('T')[0], revenue: 0 });
+      }
+    }
+    return data;
   }
 
   groupRevenueData(data: RevenueData[], period: number): RevenueData[] {
@@ -141,8 +169,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   getBarHeight(revenue: number): string {
     const max = this.getMaxRevenue();
-    const percentage = max > 0 ? (revenue / max) * 100 : 0;
-    return `${Math.max(percentage, 2)}%`;
+    if (max === 0 || max === 100) return '5%';
+    const percentage = (revenue / max) * 100;
+    return `${Math.max(percentage, 3)}%`;
   }
 
   getBarLabel(dateStr: string): string {

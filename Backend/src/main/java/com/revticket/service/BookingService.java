@@ -43,20 +43,33 @@ public class BookingService {
 
     @Transactional
     public BookingResponse createBooking(String userId, BookingRequest request) {
+        // Validate request
+        if (request.getSeats() == null || request.getSeats().isEmpty()) {
+            throw new RuntimeException("No seats selected");
+        }
+        
+        if (request.getSeats().size() > 10) {
+            throw new RuntimeException("Maximum 10 seats can be booked at once");
+        }
 
         User user = userRepository.findById(Objects.requireNonNullElse(userId, ""))
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         Showtime showtime = showtimeRepository.findById(Objects.requireNonNullElse(request.getShowtimeId(), ""))
                 .orElseThrow(() -> new RuntimeException("Showtime not found"));
+        
+        // Validate showtime is not in the past
+        if (showtime.getShowDateTime().isBefore(LocalDateTime.now())) {
+            throw new RuntimeException("Cannot book tickets for past showtimes");
+        }
 
         for (String seatId : request.getSeats()) {
             String safeSeatId = Objects.requireNonNullElse(seatId, "");
             Seat seat = seatRepository.findById(safeSeatId)
                     .orElseThrow(() -> new RuntimeException("Seat not found: " + seatId));
 
-            if (seat.getIsBooked()) {
-                throw new RuntimeException("Seat " + seatId + " is already booked");
+            if (seat.getIsBooked() || seat.getIsHeld()) {
+                throw new RuntimeException("Seat is no longer available");
             }
         }
 
@@ -78,19 +91,23 @@ public class BookingService {
         booking.setTicketNumber("TKT" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
         booking.setQrCode("QR_" + UUID.randomUUID().toString());
 
-        booking = bookingRepository.save(booking);
+        try {
+            booking = bookingRepository.save(booking);
 
-        for (String seatId : request.getSeats()) {
-            String safeSeatId = Objects.requireNonNullElse(seatId, "");
-            Seat seat = seatRepository.findById(safeSeatId).orElse(null);
-            if (seat != null) {
-                seat.setIsBooked(true);
-                seatRepository.save(seat);
+            for (String seatId : request.getSeats()) {
+                String safeSeatId = Objects.requireNonNullElse(seatId, "");
+                Seat seat = seatRepository.findById(safeSeatId).orElse(null);
+                if (seat != null) {
+                    seat.setIsBooked(true);
+                    seatRepository.save(seat);
+                }
             }
-        }
 
-        showtime.setAvailableSeats(showtime.getAvailableSeats() - request.getSeats().size());
-        showtimeRepository.save(showtime);
+            showtime.setAvailableSeats(Math.max(0, showtime.getAvailableSeats() - request.getSeats().size()));
+            showtimeRepository.save(showtime);
+        } catch (Exception e) {
+            throw new RuntimeException("Payment processing failed. Please try again.");
+        }
 
         return mapToResponse(booking);
     }
@@ -118,10 +135,16 @@ public class BookingService {
             throw new RuntimeException("Only confirmed bookings can request cancellation");
         }
 
-        booking.setStatus(Booking.BookingStatus.CANCELLATION_REQUESTED);
-        booking.setCancellationReason(Objects.requireNonNullElse(reason, ""));
+        String cleanReason = Objects.requireNonNullElse(reason, "");
+        bookingRepository.updateCancellationRequest(
+            id, 
+            Booking.BookingStatus.CANCELLATION_REQUESTED, 
+            cleanReason, 
+            LocalDateTime.now()
+        );
 
-        return mapToResponse(bookingRepository.save(booking));
+        booking = bookingRepository.findById(id).orElseThrow();
+        return mapToResponse(booking);
     }
 
     @Transactional(readOnly = true)
@@ -138,6 +161,10 @@ public class BookingService {
 
         Booking booking = bookingRepository.findById(Objects.requireNonNullElse(id, ""))
                 .orElseThrow(() -> new RuntimeException("Booking not found"));
+        
+        if (booking.getStatus() == Booking.BookingStatus.CANCELLED) {
+            throw new RuntimeException("Booking is already cancelled");
+        }
 
         booking.setStatus(Booking.BookingStatus.CANCELLED);
         if (reason != null && !reason.isEmpty()) {

@@ -65,12 +65,15 @@ export class ManageTheatresComponent implements OnInit {
       )
       .subscribe({
         next: (theatres) => {
-          this.theatres.set(theatres);
-          this.extractCities(theatres);
+          this.theatres.set(theatres || []);
+          this.extractCities(theatres || []);
           this.applyFilters();
         },
-        error: () => {
-          this.alertService.error('Failed to load theatres');
+        error: (err) => {
+          console.error('Load theatres error:', err);
+          this.alertService.error('Failed to load theatres. Please try again.');
+          this.theatres.set([]);
+          this.filteredTheatres.set([]);
         }
       });
   }
@@ -81,7 +84,7 @@ export class ManageTheatresComponent implements OnInit {
   }
 
   applyFilters(): void {
-    const search = this.searchTerm().toLowerCase();
+    const search = this.searchTerm().toLowerCase().trim();
     const city = this.selectedCity();
     const status = this.selectedStatus();
 
@@ -89,8 +92,9 @@ export class ManageTheatresComponent implements OnInit {
 
     if (search) {
       filtered = filtered.filter(t =>
-        t.name.toLowerCase().includes(search) ||
-        t.location.toLowerCase().includes(search)
+        t.name?.toLowerCase().includes(search) ||
+        t.location?.toLowerCase().includes(search) ||
+        t.address?.toLowerCase().includes(search)
       );
     }
 
@@ -103,7 +107,7 @@ export class ManageTheatresComponent implements OnInit {
       filtered = filtered.filter(t => t.isActive === isActive);
     }
 
-    this.filteredTheatres.set(filtered);
+    this.filteredTheatres.set(filtered.sort((a, b) => a.name.localeCompare(b.name)));
   }
 
   onSearchChange(value: string): void {
@@ -204,6 +208,9 @@ export class ManageTheatresComponent implements OnInit {
   }
 
   toggleStatus(id: string, currentStatus: boolean): void {
+    const theatre = this.theatres().find(t => t.id === id);
+    const theatreName = theatre?.name || 'Theatre';
+    
     this.statusUpdatingId.set(id);
     const endpoint = currentStatus ? 'pause' : 'resume';
     
@@ -214,12 +221,14 @@ export class ManageTheatresComponent implements OnInit {
       )
       .subscribe({
         next: () => {
-          this.alertService.success(`Theatre ${!currentStatus ? 'resumed' : 'paused'}`);
+          const action = !currentStatus ? 'activated' : 'deactivated';
+          this.alertService.success(`"${theatreName}" ${action} successfully`);
           this.theatres.update(theatres => theatres.map(t => t.id === id ? { ...t, isActive: !currentStatus } : t));
           this.applyFilters();
         },
-        error: () => {
-          this.alertService.error('Unable to update status');
+        error: (err) => {
+          console.error('Status update error:', err);
+          this.alertService.error('Unable to update theatre status');
         }
       });
   }
@@ -233,7 +242,10 @@ export class ManageTheatresComponent implements OnInit {
   }
 
   deleteTheatreById(id: string): void {
-    if (!confirm('Are you sure?')) return;
+    const theatre = this.theatres().find(t => t.id === id);
+    const theatreName = theatre?.name || 'this theatre';
+    
+    if (!confirm(`Delete "${theatreName}"?\n\nThis action cannot be undone and will remove all associated screens.`)) return;
     
     this.deletingId.set(id);
     this.http.delete(`${environment.apiUrl}/admin/theatres/${id}`)
@@ -243,11 +255,13 @@ export class ManageTheatresComponent implements OnInit {
       )
       .subscribe({
         next: () => {
-          this.alertService.success('Theatre deleted successfully');
-          this.loadTheatres();
+          this.alertService.success(`"${theatreName}" deleted successfully`);
+          this.theatres.update(theatres => theatres.filter(t => t.id !== id));
+          this.applyFilters();
         },
-        error: () => {
-          this.alertService.error('Unable to delete theatre');
+        error: (err) => {
+          console.error('Delete error:', err);
+          this.alertService.error('Unable to delete theatre. It may have active screens or shows.');
         }
       });
   }

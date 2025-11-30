@@ -43,6 +43,14 @@ export class ShowtimesComponent implements OnInit {
     return dates;
   });
 
+  getShowtimeCountForDate(date: Date): number {
+    const dateStr = this.formatDate(date);
+    return this.showtimes().filter(s => {
+      const showDateStr = new Date(s.showDateTime).toISOString().split('T')[0];
+      return showDateStr === dateStr;
+    }).length;
+  }
+
   languages = computed(() => {
     const langs = new Set<string>();
     this.showtimes().forEach(s => langs.add(s.movie?.language || 'Unknown'));
@@ -53,6 +61,13 @@ export class ShowtimesComponent implements OnInit {
 
   theaterGroups = computed(() => {
     let filtered = this.showtimes();
+
+    // Filter by selected date
+    const selectedDateStr = this.formatDate(this.selectedDate());
+    filtered = filtered.filter(s => {
+      const showDateStr = new Date(s.showDateTime).toISOString().split('T')[0];
+      return showDateStr === selectedDateStr;
+    });
 
     if (this.selectedLanguage() !== 'All') {
       filtered = filtered.filter(s => s.movie?.language === this.selectedLanguage());
@@ -109,10 +124,6 @@ export class ShowtimesComponent implements OnInit {
 
   selectDate(date: Date): void {
     this.selectedDate.set(date);
-    const movie = this.movie();
-    if (movie) {
-      this.loadShowtimes(movie.id);
-    }
   }
 
   selectLanguage(lang: string): void {
@@ -128,17 +139,7 @@ export class ShowtimesComponent implements OnInit {
   }
 
   selectShowtime(showtimeId: string): void {
-    const movie = this.movie();
-    if (!movie) return;
-    
-    // Find the showtime to get theater info
-    const showtime = this.showtimes().find(s => s.id === showtimeId);
-    if (!showtime) return;
-    
-    const movieSlug = this.createSlug(movie.title);
-    const showtimeSlug = this.createShowtimeSlug(showtime);
-    
-    this.router.navigate(['/user/seat-booking', movieSlug, showtimeSlug]);
+    this.router.navigate(['/user/seat-booking', showtimeId]);
   }
 
   getAvailabilityStatus(availableSeats: number, totalSeats: number): string {
@@ -163,42 +164,14 @@ export class ShowtimesComponent implements OnInit {
     return date.toISOString().split('T')[0];
   }
 
-  private loadDataBySlug(slug: string): void {
-    this.loading.set(true);
-    
-    this.movieService.getMovies().subscribe({
-      next: (movies: Movie[]) => {
-        const movie = movies.find((m: Movie) => this.createSlug(m.title) === slug);
-        if (movie) {
-          this.movie.set(movie);
-          this.loadShowtimes(movie.id);
-        } else {
-          this.error.set('Movie not found');
-          this.loading.set(false);
-          this.alertService.error('Movie not found');
-          this.router.navigate(['/user/home']);
-        }
-      },
-      error: () => {
-        this.error.set('Failed to load movie details');
-        this.loading.set(false);
-        this.alertService.error('Movie not found');
-        this.router.navigate(['/user/home']);
-      }
-    });
+  getDayLabel(date: Date): string {
+    if (this.isToday(date)) return 'Today';
+    if (this.isTomorrow(date)) return 'Tomorrow';
+    return date.toLocaleDateString('en-US', { weekday: 'short' });
   }
 
-  private createSlug(title: string): string {
-    return title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-  }
-  
-  private createShowtimeSlug(showtime: Showtime): string {
-    const theaterSlug = showtime.theater?.name?.toLowerCase().replace(/[^a-z0-9]+/g, '-') || 'theater';
-    const time = new Date(showtime.showDateTime).toTimeString().slice(0, 5).replace(':', '');
-    const date = new Date(showtime.showDateTime).toISOString().slice(0, 10);
-    return `${theaterSlug}-${date}-${time}-${showtime.id}`;
-  }
-  
+
+
   getScreenLabel(showtimeId: string): string {
     const showtime = this.showtimes().find(s => s.id === showtimeId);
     return showtime?.screen || 'Screen 1';
@@ -222,13 +195,19 @@ export class ShowtimesComponent implements OnInit {
   }
 
   private loadShowtimes(movieId: string): void {
-    const dateStr = this.formatDate(this.selectedDate());
-    
-    this.showtimeService.getShowtimesByMovie(movieId, dateStr).subscribe({
+    // Load all showtimes for the movie (next 7 days)
+    this.showtimeService.getShowtimesByMovie(movieId).subscribe({
       next: (data) => {
-        const active = data.filter(s => s.status === 'ACTIVE');
+        const now = new Date();
+        const sevenDaysLater = new Date();
+        sevenDaysLater.setDate(now.getDate() + 7);
+        
+        const active = data.filter(s => {
+          const showDate = new Date(s.showDateTime);
+          return s.status === 'ACTIVE' && showDate >= now && showDate < sevenDaysLater;
+        });
+        
         this.showtimes.set(active);
-        this.error.set(active.length === 0 ? 'No showtimes available for this date' : '');
         this.loading.set(false);
       },
       error: () => {

@@ -39,9 +39,7 @@ export class BookingService {
 
   requestCancellation(id: string, reason: string): Observable<Booking> {
     return this.http
-      .post<Booking>(`${environment.apiUrl}/bookings/${id}/request-cancellation`, `"${reason}"`, {
-        headers: { 'Content-Type': 'application/json' }
-      })
+      .post<Booking>(`${environment.apiUrl}/bookings/${id}/request-cancellation`, { reason })
       .pipe(map(booking => this.normalizeBookingDates(booking)));
   }
 

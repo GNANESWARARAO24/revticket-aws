@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { Component, Input, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { Movie } from '../../../core/models/movie.model';
@@ -187,31 +187,38 @@ import { Movie } from '../../../core/models/movie.model';
     }
   `]
 })
-export class MovieSliderComponent {
+export class MovieSliderComponent implements AfterViewInit {
   @Input() movies: Movie[] = [];
   @Input() title: string = 'Now Showing';
+  @ViewChild('sliderContainer') sliderContainer!: ElementRef<HTMLElement>;
   
   canScrollLeft = false;
   canScrollRight = true;
   
   constructor(private router: Router) {}
   
+  ngAfterViewInit(): void {
+    setTimeout(() => this.updateScrollButtons(), 100);
+  }
+  
   scrollLeft(): void {
-    const container = document.querySelector('.slider-container') as HTMLElement;
-    if (container) {
-      container.scrollBy({ left: -500, behavior: 'smooth' });
+    if (this.sliderContainer?.nativeElement) {
+      this.sliderContainer.nativeElement.scrollBy({ left: -500, behavior: 'smooth' });
     }
   }
   
   scrollRight(): void {
-    const container = document.querySelector('.slider-container') as HTMLElement;
-    if (container) {
-      container.scrollBy({ left: 500, behavior: 'smooth' });
+    if (this.sliderContainer?.nativeElement) {
+      this.sliderContainer.nativeElement.scrollBy({ left: 500, behavior: 'smooth' });
     }
   }
   
   onScroll(): void {
-    const container = document.querySelector('.slider-container') as HTMLElement;
+    this.updateScrollButtons();
+  }
+  
+  private updateScrollButtons(): void {
+    const container = this.sliderContainer?.nativeElement;
     if (container) {
       this.canScrollLeft = container.scrollLeft > 0;
       this.canScrollRight = container.scrollLeft < container.scrollWidth - container.clientWidth - 10;

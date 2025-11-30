@@ -1,58 +1,36 @@
 <div class="payment-container" *ngIf="bookingDraft() && costBreakdown(); else missingBooking">
+  <div class="payment-header">
+    <button class="back-button" (click)="goBack()">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M19 12H5M12 19l-7-7 7-7"/>
+      </svg>
+      Back to Seats
+    </button>
+    <h1>Complete Your Booking</h1>
+  </div>
+  
   <div class="payment-grid">
-    <section class="summary-card">
-      <h2>Booking Summary</h2>
-      <div class="movie-info">
-        <h3>{{ bookingDraft()!.movieTitle }}</h3>
-        <p>{{ bookingDraft()!.theaterName }} • {{ bookingDraft()!.theaterLocation }}</p>
-        <p>{{ bookingDraft()!.showDateTime | date:'MMM d, y - h:mm a' }}</p>
-      </div>
-
-      <div class="seat-info">
-        <div class="label">Seats</div>
-        <div class="value">{{ bookingDraft()!.seatLabels?.join(', ') || bookingDraft()!.seats.join(', ') }}</div>
-      </div>
-
-      <div class="cost-breakdown">
-        <div class="row">
-          <span>Tickets ({{ bookingDraft()!.seats.length }})</span>
-          <span>₹{{ costBreakdown()!.baseAmount }}</span>
-        </div>
-        <div class="row">
-          <span>Convenience Fee</span>
-          <span>₹{{ costBreakdown()!.convenienceFee }}</span>
-        </div>
-        <div class="row">
-          <span>GST</span>
-          <span>₹{{ costBreakdown()!.gst }}</span>
-        </div>
-        <div class="row total">
-          <span>Total Payable</span>
-          <span>₹{{ costBreakdown()!.total }}</span>
-        </div>
-      </div>
-    </section>
-
     <section class="payment-card">
       <h2>Payment Details</h2>
 
       <form [formGroup]="contactForm" class="contact-form">
+        <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 1rem; color: #333;">Contact Information</h3>
         <div class="form-row">
-          <label>Full Name</label>
-          <input type="text" formControlName="name" placeholder="Your name">
+          <label>Full Name *</label>
+          <input type="text" formControlName="name" placeholder="Enter your full name">
         </div>
         <div class="form-row">
-          <label>Email</label>
-          <input type="email" formControlName="email" placeholder="you@email.com">
+          <label>Email Address *</label>
+          <input type="email" formControlName="email" placeholder="your@email.com">
         </div>
         <div class="form-row">
-          <label>Phone</label>
-          <input type="tel" formControlName="phone" placeholder="10-digit number">
+          <label>Mobile Number *</label>
+          <input type="tel" formControlName="phone" placeholder="10-digit mobile number">
         </div>
       </form>
 
       <div class="payment-methods">
-        <h3>Select Payment Method</h3>
+        <h3>Payment Method</h3>
         <div class="method-options">
           <label class="method-option" [class.active]="paymentMethod() === 'card'">
             <input type="radio" value="card" [(ngModel)]="paymentMethod" (change)="onPaymentMethodChange('card')">
@@ -71,16 +49,16 @@
 
       <form *ngIf="paymentMethod() === 'card'" [formGroup]="cardForm" class="payment-form">
         <div class="form-row">
-          <label>Cardholder Name</label>
-          <input type="text" formControlName="cardholderName" placeholder="Name on card">
+          <label>Cardholder Name *</label>
+          <input type="text" formControlName="cardholderName" placeholder="Name as on card">
         </div>
         <div class="form-row">
-          <label>Card Number</label>
+          <label>Card Number *</label>
           <input type="text" formControlName="cardNumber" placeholder="1234 5678 9012 3456" maxlength="16">
         </div>
         <div class="two-column">
           <div>
-            <label>Expiry Month</label>
+            <label>Expiry Month *</label>
             <select formControlName="expiryMonth">
               <option value="">MM</option>
               <option *ngFor="let month of monthOptions" [value]="month">
@@ -89,14 +67,14 @@
             </select>
           </div>
           <div>
-            <label>Expiry Year</label>
+            <label>Expiry Year *</label>
             <select formControlName="expiryYear">
               <option value="">YYYY</option>
               <option *ngFor="let year of yearOptions" [value]="year">{{ year }}</option>
             </select>
           </div>
           <div>
-            <label>CVV</label>
+            <label>CVV *</label>
             <input type="text" formControlName="cvv" maxlength="4" placeholder="123">
           </div>
         </div>
@@ -104,7 +82,7 @@
 
       <form *ngIf="paymentMethod() === 'upi'" [formGroup]="upiForm" class="payment-form">
         <div class="form-row">
-          <label>UPI ID</label>
+          <label>UPI ID *</label>
           <input type="text" formControlName="upiId" placeholder="yourname@upi">
         </div>
         <div class="upi-apps">
@@ -115,23 +93,76 @@
       </form>
 
       <div *ngIf="paymentMethod() === 'wallet'" class="wallet-info">
-        <p>Select wallet from your linked accounts at checkout.</p>
+        <p>💼 Select your preferred wallet at checkout. Supported wallets: Paytm, PhonePe, Amazon Pay, and more.</p>
       </div>
 
-      <button 
-        type="button" 
-        class="pay-button" 
-        (click)="processPayment()" 
-        [disabled]="processing()">
-        {{ processing() ? 'Processing...' : ('Pay ₹' + costBreakdown()!.total) }}
-      </button>
+      <div class="payment-actions">
+        <button 
+          type="button" 
+          class="pay-button" 
+          (click)="processPayment()" 
+          [disabled]="processing()">
+          <span *ngIf="!processing()">Pay ₹{{ costBreakdown()!.total }}</span>
+          <span *ngIf="processing()">⏳ Processing Payment...</span>
+        </button>
+        <p class="secure-note">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+          </svg>
+          Your payment is 100% secure and encrypted
+        </p>
+      </div>
+    </section>
+
+    <section class="summary-card">
+      <h2>Booking Summary</h2>
+      <div class="movie-info">
+        <h3>🎬 {{ bookingDraft()!.movieTitle }}</h3>
+        <p><strong>{{ bookingDraft()!.theaterName }}</strong></p>
+        <p>{{ bookingDraft()!.theaterLocation }}</p>
+        <p>📅 {{ bookingDraft()!.showDateTime | date:'EEE, MMM d, y' }}</p>
+        <p>🕐 {{ bookingDraft()!.showDateTime | date:'h:mm a' }}</p>
+      </div>
+
+      <div class="seat-info">
+        <div class="label">Selected Seats</div>
+        <div class="value">{{ bookingDraft()!.seatLabels?.join(', ') || bookingDraft()!.seats.join(', ') }}</div>
+      </div>
+
+      <div class="cost-breakdown">
+        <div class="row">
+          <span>Tickets ({{ bookingDraft()!.seats.length }})</span>
+          <span>₹{{ costBreakdown()!.baseAmount }}</span>
+        </div>
+        <div class="row">
+          <span>Convenience Fee</span>
+          <span>₹{{ costBreakdown()!.convenienceFee }}</span>
+        </div>
+        <div class="row">
+          <span>GST (18%)</span>
+          <span>₹{{ costBreakdown()!.gst }}</span>
+        </div>
+        <div class="row total">
+          <span>Amount Payable</span>
+          <span>₹{{ costBreakdown()!.total }}</span>
+        </div>
+      </div>
     </section>
   </div>
 </div>
 
 <ng-template #missingBooking>
-  <div class="payment-container">
-    <p>Your booking session has expired. Please start again.</p>
-    <button class="pay-button" routerLink="/user/home">Back to Home</button>
+  <div class="payment-container missing-booking">
+    <div class="missing-content">
+      <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="12" y1="8" x2="12" y2="12"/>
+        <line x1="12" y1="16" x2="12.01" y2="16"/>
+      </svg>
+      <h2>⚠️ Session Expired</h2>
+      <p>Your booking session has expired or is invalid. Please select your seats again to continue.</p>
+      <button class="pay-button" routerLink="/user/home">🏠 Return to Home</button>
+    </div>
   </div>
 </ng-template>

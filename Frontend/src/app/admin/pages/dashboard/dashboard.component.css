@@ -118,32 +118,112 @@
 
 .stat-card {
   background: #fff;
-  border-radius: 12px;
-  padding: 20px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-  transition: all 220ms ease;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1);
   border: 1px solid #e5e7eb;
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  position: relative;
+  overflow: hidden;
+}
+
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #667eea, #764ba2);
+  transform: scaleX(0);
+  transition: transform 300ms ease;
+}
+
+.stat-card:hover::before {
+  transform: scaleX(1);
 }
 
 .stat-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+}
+
+.stat-icon {
+  font-size: 2.5rem;
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
+  flex-shrink: 0;
+}
+
+.revenue-card .stat-icon {
+  background: linear-gradient(135deg, #fef3c7, #fbbf24);
+}
+
+.bookings-card .stat-icon {
+  background: linear-gradient(135deg, #dbeafe, #3b82f6);
+}
+
+.movies-card .stat-icon {
+  background: linear-gradient(135deg, #fce7f3, #ec4899);
+}
+
+.users-card .stat-icon {
+  background: linear-gradient(135deg, #d1fae5, #10b981);
+}
+
+.stat-info {
+  flex: 1;
+  min-width: 0;
 }
 
 .stat-meta {
   color: #6b7280;
-  font-weight: 700;
-  font-size: 0.8rem;
+  font-weight: 600;
+  font-size: 0.75rem;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 8px;
+  letter-spacing: 0.8px;
+  margin-bottom: 6px;
 }
 
 .stat-value {
-  font-size: 1.7rem;
+  font-size: 2rem;
   font-weight: 800;
   color: #0f172a;
-  letter-spacing: -0.5px;
+  letter-spacing: -1px;
+  margin-bottom: 4px;
+  line-height: 1;
+}
+
+.stat-trend {
+  font-size: 0.75rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.stat-trend.positive {
+  color: #10b981;
+}
+
+.stat-trend.negative {
+  color: #ef4444;
+}
+
+.stat-sub {
+  font-size: 0.8rem;
+  color: #9ca3af;
+  font-weight: 500;
+  margin-top: 6px;
 }
 
 /* ========================================
@@ -237,13 +317,17 @@
 
 .bar {
   width: 100%;
-  min-height: 4px;
-  background: #e5e7eb;
+  min-height: 8px;
+  background: #f3f4f6;
   border-radius: 8px 8px 4px 4px;
   position: relative;
   overflow: visible;
   cursor: pointer;
   transition: all 280ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.bar.has-revenue {
+  background: #e5e7eb;
 }
 
 .bar:hover {
@@ -257,6 +341,15 @@
   border-radius: 8px 8px 4px 4px;
   transition: all 280ms cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.bar.has-revenue .bar-fill {
+  opacity: 1;
+}
+
+.bar:not(.has-revenue) .bar-fill {
+  opacity: 0.2;
+  background: #d1d5db;
 }
 
 .bar:hover .bar-fill {
@@ -475,10 +568,13 @@
 
 .empty-state {
   text-align: center;
-  padding: 40px 20px;
-  color: #6b7280;
-  font-weight: 500;
-  font-size: 0.92rem;
+  padding: 60px 20px;
+  color: #9ca3af;
+  font-weight: 600;
+  font-size: 0.95rem;
+  background: #f9fafb;
+  border-radius: 8px;
+  border: 2px dashed #e5e7eb;
 }
 
 /* ========================================
@@ -518,6 +614,20 @@
     grid-template-columns: 1fr;
     gap: 14px;
     margin-bottom: 20px;
+  }
+
+  .stat-card {
+    padding: 20px;
+  }
+
+  .stat-icon {
+    width: 56px;
+    height: 56px;
+    font-size: 2rem;
+  }
+
+  .stat-value {
+    font-size: 1.6rem;
   }
 
   .page-title {

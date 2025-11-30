@@ -2,39 +2,56 @@
   <!-- Loading State -->
   <div *ngIf="loading()" class="loading">
     <div class="spinner"></div>
-    <p>Loading showtime...</p>
+    <p>Loading seat availability...</p>
   </div>
 
   <!-- Error State -->
   <div *ngIf="error()" class="error">
+    <div class="error-icon">⚠️</div>
     <h2>Unable to Load Showtime</h2>
     <p>{{ error() }}</p>
-    <button (click)="goBack()" class="btn-secondary">Go Back</button>
+    <button (click)="goBack()" class="btn-secondary">← Go Back to Home</button>
   </div>
 
   <!-- Main Content -->
   <div *ngIf="!loading() && !error() && showtime()" class="content">
     <!-- Header -->
     <header class="header">
-      <button (click)="goBack()" class="back-btn">← Back</button>
+      <button (click)="goBack()" class="back-btn">
+        <span class="back-icon">←</span>
+        <span>Back</span>
+      </button>
       <div class="movie-info">
-        <h1>{{ showtime()?.movie?.title }}</h1>
+        <h1 class="movie-title">{{ showtime()?.movie?.title }}</h1>
         <div class="details">
-          <span>{{ getTheaterLabel() }}</span>
-          <span>{{ getScreenLabel() }}</span>
-          <span>{{ getShowLabel() }}</span>
-          <span>{{ showtime()?.showDateTime | date:'EEE, MMM d, y' }}</span>
-          <span>{{ showtime()?.showDateTime | date:'h:mm a' }}</span>
+          <span class="detail-item">
+            <span class="detail-icon">🏢</span>
+            {{ getTheaterLabel() }}
+          </span>
+          <span class="detail-item">
+            <span class="detail-icon">📺</span>
+            {{ getScreenLabel() }}
+          </span>
+          <span class="detail-item">
+            <span class="detail-icon">📅</span>
+            {{ showtime()?.showDateTime | date:'EEE, MMM d' }}
+          </span>
+          <span class="detail-item">
+            <span class="detail-icon">🕐</span>
+            {{ showtime()?.showDateTime | date:'h:mm a' }}
+          </span>
         </div>
       </div>
     </header>
+
+
 
     <!-- Seat Selection -->
     <main class="seat-selection">
       <!-- Screen -->
       <div class="screen">
         <div class="screen-curve"></div>
-        <span class="screen-label">{{ getScreenLabel().toUpperCase() }}</span>
+        <span class="screen-label">SCREEN THIS WAY</span>
       </div>
 
       <!-- Seats Grid -->
@@ -42,14 +59,19 @@
         <div *ngFor="let row of seatRows()" class="seat-row">
           <span class="row-label">{{ row.row }}</span>
           <div class="seats">
-            <button
-              *ngFor="let seat of row.seats"
-              (click)="toggleSeat(seat)"
-              [class]="getSeatClass(seat)"
-              [disabled]="seat.isBooked || seat.isHeld"
-              class="seat">
-              {{ seat.number }}
-            </button>
+            <ng-container *ngFor="let seat of row.seats">
+              <button
+                *ngIf="seat"
+                (click)="toggleSeat(seat)"
+                [class]="'seat ' + getSeatClass(seat)"
+                [disabled]="!isSeatClickable(seat)"
+                [title]="getSeatTooltip(seat)"
+                [attr.data-price]="seat.price">
+                <span class="seat-number">{{ seat.number }}</span>
+                <span class="seat-price" *ngIf="isSeatClickable(seat)">₹{{ seat.price }}</span>
+              </button>
+              <div *ngIf="!seat" class="seat-gap"></div>
+            </ng-container>
           </div>
           <span class="row-label">{{ row.row }}</span>
         </div>
@@ -58,16 +80,30 @@
       <!-- Legend -->
       <div class="legend">
         <div class="legend-item">
-          <div class="seat available"></div>
+          <div class="seat-demo available">
+            <span class="seat-number">1</span>
+            <span class="seat-price">₹{{ showtime()?.ticketPrice || 0 }}</span>
+          </div>
           <span>Available</span>
         </div>
         <div class="legend-item">
-          <div class="seat selected"></div>
+          <div class="seat-demo selected">
+            <span class="seat-number">2</span>
+            <span class="seat-price">₹{{ showtime()?.ticketPrice || 0 }}</span>
+          </div>
           <span>Selected</span>
         </div>
         <div class="legend-item">
-          <div class="seat booked"></div>
+          <div class="seat-demo booked">
+            <span class="seat-number">3</span>
+          </div>
           <span>Booked</span>
+        </div>
+        <div class="legend-item">
+          <div class="seat-demo disabled">
+            <span class="seat-number">4</span>
+          </div>
+          <span>Disabled</span>
         </div>
       </div>
     </main>
@@ -77,15 +113,29 @@
   <div *ngIf="selectedSeatsList().length > 0" class="booking-summary">
     <div class="summary-content">
       <div class="selected-info">
-        <div class="seats-selected">{{ selectedSeatsLabels().join(', ') }}</div>
+        <div class="seats-selected">
+          <span class="selected-icon">🎫</span>
+          <span class="selected-text">{{ selectedSeatsLabels().join(', ') }}</span>
+        </div>
         <div class="seat-count">{{ selectedSeatsLabels().length }} seat(s) selected</div>
       </div>
       <div class="price-info">
-        <div class="total">₹{{ totalPrice() }}</div>
+        <div class="price-breakdown">
+          <div class="price-row">
+            <span>{{ selectedSeatsLabels().length }} × ₹{{ showtime()?.ticketPrice || 0 }}</span>
+          </div>
+          <div class="total-row">
+            <span class="total-label">Total:</span>
+            <span class="total-amount">₹{{ totalPrice() }}</span>
+          </div>
+        </div>
         <button (click)="proceedToPayment()" class="btn-primary">
-          Proceed to Payment
+          <span class="btn-icon">💳</span>
+          <span>Proceed to Payment</span>
         </button>
       </div>
     </div>
   </div>
+
+
 </div>

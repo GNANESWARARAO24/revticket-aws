@@ -1,4 +1,4 @@
-import { Component, Input, AfterViewInit, ViewChild, ElementRef } from '@angular/core';
+import { Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { Movie } from '../../../core/models/movie.model';
@@ -8,24 +8,24 @@ import { Movie } from '../../../core/models/movie.model';
   standalone: true,
   imports: [CommonModule],
   template: `
-    <section class="movie-carousel">
-      <div class="carousel-header">
+    <section class="movie-grid-section">
+      <div class="section-header">
         <h2 class="section-title">{{ title }}</h2>
-        <div class="carousel-nav">
-          <button class="nav-arrow left" (click)="scrollLeft()" [disabled]="!canScrollLeft">‹</button>
-          <button class="nav-arrow right" (click)="scrollRight()" [disabled]="!canScrollRight">›</button>
-        </div>
       </div>
-      <div class="carousel-container" #carouselContainer (scroll)="updateScrollState()">
+      <div class="movies-grid">
         <div class="movie-card" *ngFor="let movie of movies" (click)="viewDetails(movie.id)">
           <div class="card-poster">
             <img [src]="movie.posterUrl" [alt]="movie.title">
             <div class="rating-badge">⭐ {{ movie.rating || 'N/A' }}</div>
           </div>
-          <div class="card-info">
-            <h3 class="card-title">{{ movie.title }}</h3>
-            <div class="card-meta">
-              <span class="genre">{{ movie.genre?.[0] || 'Movie' }}</span>
+          <div class="card-content">
+            <h3 class="movie-title">{{ movie.title }}</h3>
+            <div class="movie-meta">
+              <span class="language">{{ movie.language }}</span>
+              <span class="duration">{{ movie.duration }}m</span>
+            </div>
+            <div class="movie-genres">
+              <span class="genre-tag" *ngFor="let genre of movie.genre.slice(0, 2)">{{ genre }}</span>
             </div>
             <div class="card-actions">
               <button class="btn-showtimes" (click)="viewShowtimes($event, movie.id)">Showtimes</button>
@@ -37,69 +37,30 @@ import { Movie } from '../../../core/models/movie.model';
     </section>
   `,
   styles: [`
-    .movie-carousel {
+    .movie-grid-section {
       padding: 48px 0;
-      background: white;
+      background: #f8f9fa;
     }
-    .carousel-header {
+    .section-header {
       max-width: 1400px;
-      margin: 0 auto 24px;
+      margin: 0 auto 32px;
       padding: 0 32px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
     }
     .section-title {
-      font-size: 28px;
+      font-size: 32px;
       font-weight: 800;
       color: #1a1a1a;
       margin: 0;
     }
-    .carousel-nav {
-      display: flex;
-      gap: 12px;
-    }
-    .nav-arrow {
-      width: 44px;
-      height: 44px;
-      border-radius: 50%;
-      background: white;
-      border: 2px solid #e9ecef;
-      color: #1a1a1a;
-      font-size: 24px;
-      font-weight: 700;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .nav-arrow:hover:not(:disabled) {
-      background: #667eea;
-      color: white;
-      border-color: #667eea;
-      transform: scale(1.1);
-    }
-    .nav-arrow:disabled {
-      opacity: 0.3;
-      cursor: not-allowed;
-    }
-    .carousel-container {
+    .movies-grid {
       max-width: 1400px;
       margin: 0 auto;
       padding: 0 32px;
-      display: flex;
-      gap: 20px;
-      overflow-x: auto;
-      scroll-behavior: smooth;
-      scrollbar-width: none;
-      -ms-overflow-style: none;
-    }
-    .carousel-container::-webkit-scrollbar {
-      display: none;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 24px;
     }
     .movie-card {
-      flex: 0 0 260px;
       background: white;
       border-radius: 12px;
       overflow: hidden;
@@ -130,7 +91,7 @@ import { Movie } from '../../../core/models/movie.model';
       position: absolute;
       top: 12px;
       left: 12px;
-      background: rgba(0,0,0,0.8);
+      background: rgba(0,0,0,0.85);
       color: white;
       padding: 6px 12px;
       border-radius: 16px;
@@ -138,10 +99,10 @@ import { Movie } from '../../../core/models/movie.model';
       font-weight: 700;
       backdrop-filter: blur(10px);
     }
-    .card-info {
+    .card-content {
       padding: 16px;
     }
-    .card-title {
+    .movie-title {
       font-size: 17px;
       font-weight: 700;
       color: #1a1a1a;
@@ -152,11 +113,22 @@ import { Movie } from '../../../core/models/movie.model';
       overflow: hidden;
       min-height: 44px;
     }
-    .card-meta {
-      margin-bottom: 12px;
+    .movie-meta {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 8px;
+      font-size: 13px;
+      color: #666;
+      font-weight: 600;
     }
-    .genre {
-      display: inline-block;
+    .movie-genres {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 12px;
+      min-height: 28px;
+      flex-wrap: wrap;
+    }
+    .genre-tag {
       background: #f5f5f5;
       color: #666;
       padding: 4px 12px;
@@ -196,57 +168,34 @@ import { Movie } from '../../../core/models/movie.model';
       transform: translateY(-2px);
       box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
     }
+    @media (max-width: 1200px) {
+      .movies-grid {
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      }
+    }
     @media (max-width: 768px) {
-      .carousel-header {
+      .section-header,
+      .movies-grid {
         padding: 0 16px;
       }
-      .carousel-container {
-        padding: 0 16px;
+      .section-title {
+        font-size: 26px;
       }
-      .movie-card {
-        flex: 0 0 220px;
+      .movies-grid {
+        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+        gap: 16px;
       }
       .card-poster {
-        height: 300px;
-      }
-      .nav-arrow {
-        display: none;
+        height: 240px;
       }
     }
   `]
 })
-export class MovieCarouselComponent implements AfterViewInit {
+export class MovieCarouselComponent {
   @Input() movies: Movie[] = [];
   @Input() title: string = 'Now Showing';
-  
-  @ViewChild('carouselContainer') carouselContainer!: ElementRef;
-  
-  canScrollLeft = false;
-  canScrollRight = true;
 
   constructor(private router: Router) {}
-
-  ngAfterViewInit(): void {
-    setTimeout(() => this.updateScrollState(), 100);
-  }
-
-  scrollLeft(): void {
-    const container = this.carouselContainer.nativeElement;
-    container.scrollBy({ left: -280, behavior: 'smooth' });
-    setTimeout(() => this.updateScrollState(), 300);
-  }
-
-  scrollRight(): void {
-    const container = this.carouselContainer.nativeElement;
-    container.scrollBy({ left: 280, behavior: 'smooth' });
-    setTimeout(() => this.updateScrollState(), 300);
-  }
-
-  updateScrollState(): void {
-    const container = this.carouselContainer.nativeElement;
-    this.canScrollLeft = container.scrollLeft > 0;
-    this.canScrollRight = container.scrollLeft < container.scrollWidth - container.clientWidth - 10;
-  }
 
   viewDetails(movieId: string): void {
     this.router.navigate(['/user/movie-details', movieId]);
