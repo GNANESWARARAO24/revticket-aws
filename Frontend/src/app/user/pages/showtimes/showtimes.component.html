@@ -42,51 +42,53 @@
     </div>
   </div>
 
-  <!-- Filters Section -->
+  <!-- Filters Section - Dropdown Style -->
   <div class="filters-section">
     <div class="container">
       <div class="filters-row">
-        <!-- Language Filter -->
-        <div class="filter-group">
+        <!-- Language Dropdown -->
+        <div class="filter-dropdown-group">
           <label>Language</label>
-          <div class="filter-chips">
+          <select class="filter-dropdown" [(ngModel)]="selectedLanguage" (ngModelChange)="selectLanguage($event)">
             @for (lang of languages(); track lang) {
-            <button class="chip" [class.active]="selectedLanguage() === lang" (click)="selectLanguage(lang)">
-              {{ lang }}
-            </button>
+            <option [value]="lang">{{ lang }}</option>
             }
-          </div>
+          </select>
+          <span class="dropdown-arrow">▼</span>
         </div>
 
-        <!-- Format Filter -->
-        <div class="filter-group">
-          <label>Format</label>
-          <div class="filter-chips">
-            @for (format of formats(); track format) {
-            <button class="chip" [class.active]="selectedFormat() === format" (click)="selectFormat(format)">
-              {{ format }}
-            </button>
-            }
-          </div>
-        </div>
-
-        <!-- Price Filter -->
-        <div class="filter-group">
+        <!-- Price Range Dropdown -->
+        <div class="filter-dropdown-group">
           <label>Price Range</label>
-          <div class="filter-chips">
-            <button class="chip" [class.active]="priceRange() === 'All'" (click)="selectPriceRange('All')">
-              All
-            </button>
-            <button class="chip" [class.active]="priceRange() === '0-200'" (click)="selectPriceRange('0-200')">
-              ₹0-200
-            </button>
-            <button class="chip" [class.active]="priceRange() === '200-400'" (click)="selectPriceRange('200-400')">
-              ₹200-400
-            </button>
-            <button class="chip" [class.active]="priceRange() === '400-1000'" (click)="selectPriceRange('400-1000')">
-              ₹400+
-            </button>
-          </div>
+          <select class="filter-dropdown" [(ngModel)]="priceRange" (ngModelChange)="selectPriceRange($event)">
+            <option value="All">All</option>
+            <option value="0-200">₹0-200</option>
+            <option value="200-400">₹200-400</option>
+            <option value="400-1000">₹400+</option>
+          </select>
+          <span class="dropdown-arrow">▼</span>
+        </div>
+
+        <!-- Preferred Time Dropdown -->
+        <div class="filter-dropdown-group">
+          <label>Preferred Time</label>
+          <select class="filter-dropdown" [(ngModel)]="selectedFormat" (ngModelChange)="selectFormat($event)">
+            @for (format of formats(); track format) {
+            <option [value]="format">{{ format }}</option>
+            }
+          </select>
+          <span class="dropdown-arrow">▼</span>
+        </div>
+
+        <!-- Sort By Dropdown -->
+        <div class="filter-dropdown-group">
+          <label>Sort By</label>
+          <select class="filter-dropdown" [(ngModel)]="sortBy" (ngModelChange)="sortBy.set($event)">
+            <option value="time">Showtime</option>
+            <option value="price">Price</option>
+            <option value="name">Theater Name</option>
+          </select>
+          <span class="dropdown-arrow">▼</span>
         </div>
       </div>
     </div>
@@ -124,6 +126,7 @@
             (click)="selectShowtime(show.id)">
             <div class="time">{{ show.showDateTime | date:'h:mm a' }}</div>
             <div class="screen">{{ getScreenLabel(show.screen) }}</div>
+            <div class="price">₹{{ show.ticketPrice }}</div>
             @if (getAvailabilityStatus(show.availableSeats, show.totalSeats) === 'fast-filling') {
             <div class="badge">Fast Filling</div>
             }

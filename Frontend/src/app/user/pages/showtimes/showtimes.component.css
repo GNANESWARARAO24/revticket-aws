@@ -152,47 +152,61 @@
 
 .filters-row {
   display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
+  gap: 2rem;
+  flex-wrap: wrap;
+  align-items: flex-start;
 }
 
-.filter-group label {
-  display: block;
-  font-size: 0.85rem;
-  font-weight: 600;
+.filter-dropdown-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 180px;
+  position: relative;
+}
+
+.filter-dropdown-group label {
+  font-size: 0.75rem;
+  font-weight: 700;
   color: #666;
-  margin-bottom: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
-.filter-chips {
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-
-.chip {
-  padding: 0.5rem 1rem;
+.filter-dropdown {
+  padding: 0.65rem 1rem 0.65rem 0.75rem;
   background: white;
   border: 1px solid #d0d0d0;
-  border-radius: 20px;
-  font-size: 0.85rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
   font-weight: 500;
-  color: #666;
+  color: #333;
   cursor: pointer;
   transition: all 0.2s;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  padding-right: 2rem;
 }
 
-.chip:hover {
+.filter-dropdown:hover {
   border-color: #dc3558;
-  color: #dc3558;
+  box-shadow: 0 2px 4px rgba(220, 53, 88, 0.1);
 }
 
-.chip.active {
-  background: #dc3558;
+.filter-dropdown:focus {
+  outline: none;
   border-color: #dc3558;
-  color: white;
+  box-shadow: 0 0 0 3px rgba(220, 53, 88, 0.1);
+}
+
+.filter-dropdown-group .dropdown-arrow {
+  position: absolute;
+  right: 0.75rem;
+  top: 1.85rem;
+  font-size: 0.6rem;
+  color: #999;
+  pointer-events: none;
 }
 
 /* Cinema Section */
@@ -242,6 +256,7 @@
   display: flex;
   align-items: center;
   gap: 1rem;
+  flex: 1;
 }
 
 .cinema-icon {
@@ -253,6 +268,7 @@
   align-items: center;
   justify-content: center;
   font-size: 1.5rem;
+  flex-shrink: 0;
 }
 
 .cinema-details h3 {
@@ -266,6 +282,20 @@
   font-size: 0.85rem;
   color: #666;
   margin: 0;
+}
+
+.cinema-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.cinema-details::after {
+  content: 'Cancellation available';
+  font-size: 0.75rem;
+  color: #5fb85f;
+  font-weight: 600;
+  margin-top: 0.25rem;
 }
 
 .cinema-meta {
@@ -283,24 +313,30 @@
 
 .showtime-btn {
   position: relative;
-  min-width: 120px;
-  padding: 0.75rem 1rem;
+  min-width: 140px;
+  padding: 1rem 0.75rem;
   background: white;
-  border: 1px solid #5fb85f;
+  border: 2px solid #e0e0e0;
   border-radius: 6px;
   cursor: pointer;
   transition: all 0.2s;
   text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
 }
 
-.showtime-btn:hover {
+.showtime-btn:hover:not(.sold-out) {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 }
 
 .showtime-btn.available {
   border-color: #5fb85f;
-  color: #5fb85f;
+  border-left: 4px solid #5fb85f;
+  border-right: 4px solid #5fb85f;
 }
 
 .showtime-btn.available:hover {
@@ -309,7 +345,8 @@
 
 .showtime-btn.fast-filling {
   border-color: #ff9800;
-  color: #ff9800;
+  border-left: 4px solid #ff9800;
+  border-right: 4px solid #ff9800;
 }
 
 .showtime-btn.fast-filling:hover {
@@ -329,15 +366,15 @@
 }
 
 .time {
-  font-size: 1.1rem;
+  font-size: 1.15rem;
   font-weight: 700;
-  margin-bottom: 0.25rem;
+  line-height: 1;
 }
 
 .screen {
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   color: #666;
-  margin-bottom: 0.25rem;
+  font-weight: 500;
 }
 
 .price {
@@ -347,15 +384,16 @@
 
 .badge {
   position: absolute;
-  top: -8px;
-  right: -8px;
-  padding: 0.25rem 0.5rem;
+  top: -10px;
+  right: -10px;
+  padding: 0.35rem 0.6rem;
   background: #ff9800;
   color: white;
   font-size: 0.65rem;
   font-weight: 700;
   border-radius: 4px;
   text-transform: uppercase;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.15);
 }
 
 .showtime-btn.sold-out .badge {
@@ -381,6 +419,10 @@
     gap: 1rem;
   }
 
+  .filter-dropdown-group {
+    min-width: 150px;
+  }
+
   .cinema-header {
     flex-direction: column;
     align-items: flex-start;
@@ -393,8 +435,8 @@
   }
 
   .showtime-btn {
-    min-width: 100px;
-    padding: 0.6rem 0.75rem;
+    min-width: 110px;
+    padding: 0.8rem 0.6rem;
   }
 
   .time {
@@ -420,6 +462,14 @@
     font-size: 1.25rem;
   }
 
+  .filters-row {
+    gap: 0.75rem;
+  }
+
+  .filter-dropdown-group {
+    min-width: 120px;
+  }
+
   .cinema-card {
     margin-bottom: 1rem;
   }
@@ -429,8 +479,8 @@
   }
 
   .showtime-btn {
-    min-width: 90px;
-    padding: 0.5rem;
+    min-width: 100px;
+    padding: 0.6rem;
   }
 
   .time {

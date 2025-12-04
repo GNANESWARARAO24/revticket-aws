@@ -6,6 +6,7 @@ import { MovieService } from '../../../core/services/movie.service';
 import { ShowtimeService, Showtime } from '../../../core/services/showtime.service';
 import { AlertService } from '../../../core/services/alert.service';
 import { Movie } from '../../../core/models/movie.model';
+import { FormsModule } from '@angular/forms';
 
 interface TheaterGroup {
   theaterId: string;
@@ -17,7 +18,7 @@ interface TheaterGroup {
 @Component({
   selector: 'app-showtimes',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   templateUrl: './showtimes.component.html',
   styleUrls: ['./showtimes.component.css']
 })

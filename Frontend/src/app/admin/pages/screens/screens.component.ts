@@ -81,6 +81,14 @@ export class ScreensComponent implements OnInit {
 
   selectedTheatre = computed(() => this.theatres().find(t => t.id === this.selectedTheatreId()));
   totalSeats = computed(() => this.seatMap().filter(s => s.status !== 'disabled').length);
+  seatSize = computed(() => {
+    const seatsPerRow = this.seatsPerRow();
+    if (seatsPerRow <= 10) return 80;
+    if (seatsPerRow <= 15) return 70;
+    if (seatsPerRow <= 20) return 60;
+    if (seatsPerRow <= 30) return 50;
+    return 40;
+  });
 
   ngOnInit(): void {
     this.loadTheatres();
@@ -196,7 +204,9 @@ export class ScreensComponent implements OnInit {
   }
 
   getRowSeats(row: number): SeatData[] {
-    return this.seatMap().filter(s => s.row === row);
+    return this.seatMap()
+      .filter(s => s.row === row)
+      .sort((a, b) => a.col - b.col);
   }
 
   addCategory(): void {
@@ -235,16 +245,19 @@ export class ScreensComponent implements OnInit {
     this.hasUnsavedChanges.set(true);
   }
 
+  onFromRowChange(value: number): void {
+    this.quickAssignFromRow.set(value);
+    if (value > this.quickAssignToRow()) {
+      this.quickAssignToRow.set(value);
+    }
+  }
+
   applyQuickAssign(): void {
     const categoryId = this.quickAssignCategory();
     const fromRow = this.quickAssignFromRow();
     const toRow = this.quickAssignToRow();
     if (!categoryId) { 
       this.alertService.error('Please select a category'); 
-      return; 
-    }
-    if (fromRow > toRow) { 
-      this.alertService.error('From row must be less than or equal to To row'); 
       return; 
     }
     const category = this.categories().find(c => c.id === categoryId);
@@ -355,6 +368,10 @@ export class ScreensComponent implements OnInit {
           this.selectedScreenId.set(response.id);
           this.loadScreens();
         }
+        // Force refresh existing seats for all showtimes using this screen
+        if (response.id || screenId) {
+          this.refreshExistingSeats(response.id || screenId);
+        }
       },
       error: (err: HttpErrorResponse) => {
         this.alertService.error(err.error?.message || 'Failed to save screen');
@@ -371,6 +388,15 @@ export class ScreensComponent implements OnInit {
     } else {
       this.createNewScreen();
     }
+  }
+
+  private refreshExistingSeats(screenId: string): void {
+    this.http.post(`${environment.apiUrl}/seats/screen/${screenId}/refresh`, {})
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => console.log('Existing seats refreshed'),
+        error: (err) => console.error('Failed to refresh existing seats:', err)
+      });
   }
 
   private generateId(): string {

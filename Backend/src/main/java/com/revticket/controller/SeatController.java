@@ -48,5 +48,11 @@ public class SeatController {
         seatService.releaseSeats(showtimeId, seatIds);
         return ResponseEntity.ok(Map.of("message", "Seats released successfully"));
     }
+
+    @PostMapping("/screen/{screenId}/refresh")
+    public ResponseEntity<Map<String, String>> refreshSeatsForScreen(@PathVariable String screenId) {
+        seatService.refreshSeatsForScreen(screenId);
+        return ResponseEntity.ok(Map.of("message", "Seats refreshed successfully"));
+    }
 }
 

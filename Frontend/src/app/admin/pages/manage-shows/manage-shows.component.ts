@@ -197,9 +197,12 @@ export class ManageShowsComponent implements OnInit {
       availableSeats: totalSeats
     };
 
-    // Only set status to ACTIVE when creating new show
+    // Set status to ACTIVE for new shows, preserve existing status for updates
     if (!editId) {
       payload.status = 'ACTIVE';
+    } else {
+      const existingShow = this.shows().find(s => s.id === editId);
+      payload.status = existingShow?.status || 'ACTIVE';
     }
 
     this.saving.set(true);

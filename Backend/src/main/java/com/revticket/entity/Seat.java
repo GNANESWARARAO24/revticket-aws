@@ -33,6 +33,9 @@ public class Seat {
     @Column(name = "is_held", nullable = false)
     private Boolean isHeld = false;
 
+    @Column(name = "is_disabled", nullable = false)
+    private Boolean isDisabled = false;
+
     @Column(nullable = false)
     private Double price;
 

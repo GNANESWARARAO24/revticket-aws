@@ -14,8 +14,7 @@ interface Seat {
   type: string;
   isBooked: boolean;
   isHeld: boolean;
-  isDisabled?: boolean;
-  isBlocked?: boolean;
+  isDisabled: boolean;
 }
 
 interface Showtime {
@@ -121,6 +120,11 @@ export class SeatBookingComponent implements OnInit {
     
     this.showtimeId = showtimeId;
     this.loadData();
+    
+    // Refresh seats every 30 seconds to catch admin updates
+    setInterval(() => {
+      this.loadSeats();
+    }, 30000);
   }
 
   private async loadData() {
@@ -181,8 +185,8 @@ export class SeatBookingComponent implements OnInit {
 
 
   toggleSeat(seat: Seat) {
-    // Prevent selection of booked, held, disabled, or blocked seats
-    if (seat.isBooked || seat.isHeld || seat.isDisabled || seat.isBlocked) {
+    // Prevent selection of booked, held, or disabled seats
+    if (seat.isBooked || seat.isHeld || seat.isDisabled) {
       console.log('Seat cannot be selected:', seat);
       return;
     }
@@ -204,9 +208,8 @@ export class SeatBookingComponent implements OnInit {
   }
 
   getSeatClass(seat: Seat): string {
-    // Priority order: disabled > blocked > booked/held > selected > available
+    // Priority order: disabled > booked/held > selected > available
     if (seat.isDisabled) return 'disabled';
-    if (seat.isBlocked) return 'blocked';
     if (seat.isBooked || seat.isHeld) return 'booked';
     
     const seatKey = `${seat.row}${seat.number}`;
@@ -214,12 +217,11 @@ export class SeatBookingComponent implements OnInit {
   }
 
   isSeatClickable(seat: Seat): boolean {
-    return !seat.isBooked && !seat.isHeld && !seat.isDisabled && !seat.isBlocked;
+    return !seat.isBooked && !seat.isHeld && !seat.isDisabled;
   }
 
   getSeatTooltip(seat: Seat): string {
     if (seat.isDisabled) return 'This seat is disabled';
-    if (seat.isBlocked) return 'This seat is blocked';
     if (seat.isBooked) return 'This seat is already booked';
     if (seat.isHeld) return 'This seat is on hold';
     return `${seat.row}${seat.number} - ₹${seat.price}`;

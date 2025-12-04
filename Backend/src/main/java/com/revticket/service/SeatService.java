@@ -58,7 +58,13 @@ public class SeatService {
 
     @Transactional
     public void initializeSeatsForShowtime(String showtimeId) {
-        if (!seatRepository.findByShowtimeId(showtimeId).isEmpty()) {
+        initializeSeatsForShowtime(showtimeId, false);
+    }
+
+    @Transactional
+    public void initializeSeatsForShowtime(String showtimeId, boolean force) {
+        List<Seat> existingSeats = seatRepository.findByShowtimeId(showtimeId);
+        if (!existingSeats.isEmpty() && !force) {
             return;
         }
 
@@ -87,10 +93,6 @@ public class SeatService {
         int enabledSeats = 0;
         
         for (com.revticket.entity.SeatData seatData : seatDataList) {
-            if ("disabled".equals(seatData.getStatus())) {
-                continue; // Skip disabled seats
-            }
-            
             Seat seat = new Seat();
             seat.setShowtime(showtime);
             seat.setRow(getRowLabel(seatData.getRow()));
@@ -98,25 +100,33 @@ public class SeatService {
             seat.setIsBooked(false);
             seat.setIsHeld(false);
             
-            // Get price from category
-            Double price = categoryPriceMap.get(seatData.getCategoryId());
-            seat.setPrice(price != null ? price : 100.0);
-            
-            // Determine seat type based on price
-            if (price != null) {
-                if (price >= 250) {
-                    seat.setType(Seat.SeatType.VIP);
-                } else if (price >= 150) {
-                    seat.setType(Seat.SeatType.PREMIUM);
+            // Handle disabled seats - they exist but are marked as disabled
+            if ("disabled".equals(seatData.getStatus())) {
+                seat.setIsDisabled(true);
+                seat.setPrice(0.0);
+                seat.setType(Seat.SeatType.REGULAR);
+            } else {
+                seat.setIsDisabled(false);
+                // Get price from category
+                Double price = categoryPriceMap.get(seatData.getCategoryId());
+                seat.setPrice(price != null ? price : 100.0);
+                
+                // Determine seat type based on price
+                if (price != null) {
+                    if (price >= 250) {
+                        seat.setType(Seat.SeatType.VIP);
+                    } else if (price >= 150) {
+                        seat.setType(Seat.SeatType.PREMIUM);
+                    } else {
+                        seat.setType(Seat.SeatType.REGULAR);
+                    }
                 } else {
                     seat.setType(Seat.SeatType.REGULAR);
                 }
-            } else {
-                seat.setType(Seat.SeatType.REGULAR);
+                enabledSeats++;
             }
             
             seatsToSave.add(seat);
-            enabledSeats++;
         }
         
         seatRepository.saveAll(seatsToSave);
@@ -153,6 +163,7 @@ public class SeatService {
                 seat.setNumber(i);
                 seat.setIsBooked(false);
                 seat.setIsHeld(false);
+                seat.setIsDisabled(false);
 
                 // Simple pricing based on row position
                 if (r < rows / 3) {
@@ -188,6 +199,7 @@ public class SeatService {
                 seat.setNumber(i);
                 seat.setIsBooked(false);
                 seat.setIsHeld(false);
+                seat.setIsDisabled(false);
 
                 if ("A".equals(row) || "B".equals(row)) {
                     seat.setPrice(150.0);
@@ -233,6 +245,7 @@ public class SeatService {
                     seat.setNumber(i);
                     seat.setIsBooked(false);
                     seat.setIsHeld(false);
+                    seat.setIsDisabled(false);
                     seat.setPrice(section.getPrice());
                     seat.setType(Seat.SeatType.valueOf(section.getType()));
                     seatsToSave.add(seat);
@@ -275,6 +288,39 @@ public class SeatService {
                 seat.setHoldExpiry(null);
                 seat.setSessionId(null);
                 seatRepository.save(seat);
+            }
+        }
+    }
+
+    @Transactional
+    public void refreshSeatsForScreen(String screenId) {
+        List<Showtime> showtimes = showtimeRepository.findByScreen(screenId);
+        for (Showtime showtime : showtimes) {
+            // Delete all existing seats (booked seats will be recreated with same status)
+            List<Seat> existingSeats = seatRepository.findByShowtimeId(showtime.getId());
+            
+            // Store booked seat information
+            java.util.Map<String, Boolean> bookedSeats = new java.util.HashMap<>();
+            for (Seat seat : existingSeats) {
+                if (seat.getIsBooked()) {
+                    bookedSeats.put(seat.getRow() + seat.getNumber(), true);
+                }
+            }
+            
+            // Delete all existing seats
+            seatRepository.deleteAll(existingSeats);
+            
+            // Force reinitialize seats with new configuration
+            initializeSeatsForShowtime(showtime.getId(), true);
+            
+            // Restore booked status for previously booked seats
+            List<Seat> newSeats = seatRepository.findByShowtimeId(showtime.getId());
+            for (Seat seat : newSeats) {
+                String seatKey = seat.getRow() + seat.getNumber();
+                if (bookedSeats.containsKey(seatKey)) {
+                    seat.setIsBooked(true);
+                    seatRepository.save(seat);
+                }
             }
         }
     }

@@ -48,5 +48,7 @@ public interface ShowtimeRepository extends JpaRepository<Showtime, String> {
     @Query("SELECT s FROM Showtime s WHERE s.showDateTime BETWEEN :start AND :end ORDER BY s.showDateTime ASC")
     List<Showtime> findByShowDateTimeBetween(@Param("start") LocalDateTime start,
                                              @Param("end") LocalDateTime end);
+
+    List<Showtime> findByScreen(String screen);
 }
 

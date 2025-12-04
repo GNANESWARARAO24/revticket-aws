@@ -155,7 +155,6 @@
         </div>
       </div>
 
-
     </div>
 
     <!-- Quick Assign by Rows -->
@@ -181,7 +180,7 @@
           <select 
             id="from-row"
             [ngModel]="quickAssignFromRow()" 
-            (ngModelChange)="quickAssignFromRow.set($event)"
+            (ngModelChange)="onFromRowChange($event)"
             aria-label="From row">
             <option *ngFor="let r of [].constructor(rows()); let i = index" [value]="i">
               Row {{ getRowLabel(i) }}
@@ -242,6 +241,7 @@
         <div 
           *ngFor="let r of [].constructor(rows()); let i = index" 
           class="seat-row"
+          [style.--seat-size]="seatSize() + 'px'"
           role="row">
           <span class="row-label" role="rowheader">{{ getRowLabel(i) }}</span>
           <div class="seats">
@@ -249,6 +249,9 @@
               *ngFor="let seat of getRowSeats(i)"
               class="seat"
               [style]="getSeatStyle(seat)"
+              [style.width.px]="seatSize()"
+              [style.min-height.px]="seatSize()"
+              [style.--seat-size]="seatSize() + 'px'"
               [class.disabled]="seat.status === 'disabled'"
               [attr.aria-label]="getSeatAriaLabel(seat)"
               role="gridcell">
@@ -312,6 +315,5 @@
     <div class="spinner"></div>
     <p>Loading...</p>
   </div>
-
 
 </div>
