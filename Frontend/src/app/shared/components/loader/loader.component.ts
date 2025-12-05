@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { Component, input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 @Component({
@@ -9,6 +9,6 @@ import { CommonModule } from '@angular/common';
   styleUrls: ['./loader.component.css']
 })
 export class LoaderComponent {
-  @Input() isLoading = false;
-  @Input() message = 'Loading...';
+  isLoading = input(false);
+  message = input('Loading...');
 }

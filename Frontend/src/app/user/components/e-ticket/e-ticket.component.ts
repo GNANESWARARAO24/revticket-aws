@@ -1,4 +1,4 @@
-import { Component, Input, OnInit, ViewChild, ElementRef, inject } from '@angular/core';
+import { Component, input, OnInit, ViewChild, ElementRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Booking } from '../../../core/models/booking.model';
 import * as QRCode from 'qrcode';
@@ -14,21 +14,22 @@ import { AlertService } from '../../../core/services/alert.service';
   styleUrls: ['./e-ticket.component.css']
 })
 export class ETicketComponent implements OnInit {
-  @Input() booking!: Booking;
+  booking = input.required<Booking>();
   @ViewChild('ticketContent', { static: false }) ticketContent!: ElementRef;
   
   qrCodeDataUrl: string = '';
   private alertService = inject(AlertService);
 
   async ngOnInit(): Promise<void> {
-    if (this.booking) {
+    if (this.booking()) {
       await this.generateQRCode();
     }
   }
 
   async generateQRCode(): Promise<void> {
     try {
-      const ticketInfo = `Ticket: ${this.booking.ticketNumber}\nMovie: ${this.booking.movieTitle}\nTheater: ${this.booking.theaterName}\nShow: ${this.formatDateTime(this.booking.showtime)}\nSeats: ${this.getSeatDisplay()}\nAmount: ${this.formatCurrency(this.booking.totalAmount)}`;
+      const booking = this.booking();
+      const ticketInfo = `Ticket: ${booking.ticketNumber}\nMovie: ${booking.movieTitle}\nTheater: ${booking.theaterName}\nShow: ${this.formatDateTime(booking.showtime)}\nSeats: ${this.getSeatDisplay()}\nAmount: ${this.formatCurrency(booking.totalAmount)}`;
       
       this.qrCodeDataUrl = await QRCode.toDataURL(ticketInfo, {
         width: 200,
@@ -42,10 +43,11 @@ export class ETicketComponent implements OnInit {
   }
 
   getSeatDisplay(): string {
-    if (this.booking.seatLabels && this.booking.seatLabels.length > 0) {
-      return this.booking.seatLabels.join(', ');
+    const booking = this.booking();
+    if (booking.seatLabels && booking.seatLabels.length > 0) {
+      return booking.seatLabels.join(', ');
     }
-    return this.booking.seats?.join(', ') || 'N/A';
+    return booking.seats?.join(', ') || 'N/A';
   }
 
   formatDateTime(date: string | Date): string {
@@ -108,7 +110,8 @@ export class ETicketComponent implements OnInit {
       
       pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
       
-      pdf.save(`RevTicket_${this.booking.ticketNumber || this.booking.id}.pdf`);
+      const booking = this.booking();
+      pdf.save(`RevTicket_${booking.ticketNumber || booking.id}.pdf`);
       this.alertService.success('Ticket downloaded successfully!');
     } catch (error) {
       console.error('PDF generation failed:', error);
@@ -117,9 +120,10 @@ export class ETicketComponent implements OnInit {
   }
 
   async shareTicket(): Promise<void> {
+    const booking = this.booking();
     const shareData = {
-      title: `Movie Ticket - ${this.booking.movieTitle}`,
-      text: `🎬 ${this.booking.movieTitle}\n🏢 ${this.booking.theaterName}\n📅 ${this.formatDateTime(this.booking.showtime)}\n💺 ${this.getSeatDisplay()}\n🎫 Ticket: ${this.booking.ticketNumber}`,
+      title: `Movie Ticket - ${booking.movieTitle}`,
+      text: `🎬 ${booking.movieTitle}\n🏢 ${booking.theaterName}\n📅 ${this.formatDateTime(booking.showtime)}\n💺 ${this.getSeatDisplay()}\n🎫 Ticket: ${booking.ticketNumber}`,
       url: window.location.href
     };
 
@@ -138,7 +142,8 @@ export class ETicketComponent implements OnInit {
   }
 
   private copyToClipboard(): void {
-    const text = `🎬 ${this.booking.movieTitle}\n🏢 ${this.booking.theaterName}\n📅 ${this.formatDateTime(this.booking.showtime)}\n💺 ${this.getSeatDisplay()}\n🎫 ${this.booking.ticketNumber}`;
+    const booking = this.booking();
+    const text = `🎬 ${booking.movieTitle}\n🏢 ${booking.theaterName}\n📅 ${this.formatDateTime(booking.showtime)}\n💺 ${this.getSeatDisplay()}\n🎫 ${booking.ticketNumber}`;
     
     navigator.clipboard.writeText(text).then(() => {
       this.alertService.success('Ticket details copied to clipboard!');

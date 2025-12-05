@@ -1,8 +1,6 @@
-import { Component, OnInit, OnDestroy, inject, signal } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
-import { Subject, interval } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
 import { AdminService, DashboardStats, RevenueData, RecentActivity } from '../../../core/services/admin.service';
 import { AlertService } from '../../../core/services/alert.service';
 
@@ -17,7 +15,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private adminService = inject(AdminService);
   private alertService = inject(AlertService);
 
-  // --- Existing signals (unchanged) ---
   stats = signal<DashboardStats>({
     totalMovies: 0,
     totalBookings: 0,
@@ -33,22 +30,36 @@ export class DashboardComponent implements OnInit, OnDestroy {
   selectedPeriod = signal(7);
   loading = signal(true);
 
-  private destroy$ = new Subject<void>();
-  private refreshInterval = interval(30000);
+  private refreshIntervalId: any;
+
+  constructor() {
+    effect(() => {
+      if (this.selectedPeriod()) {
+        this.loadRevenueData();
+      }
+    });
+  }
 
   ngOnInit(): void {
     this.loadDashboardData();
-
-    this.refreshInterval
-      .pipe(takeUntil(this.destroy$))
-      .subscribe(() => {
-        this.loadDashboardData(false);
-      });
+    this.startAutoRefresh();
   }
 
   ngOnDestroy(): void {
-    this.destroy$.next();
-    this.destroy$.complete();
+    this.stopAutoRefresh();
+  }
+
+  private startAutoRefresh(): void {
+    this.refreshIntervalId = setInterval(() => {
+      this.loadDashboardData(false);
+    }, 30000);
+  }
+
+  private stopAutoRefresh(): void {
+    if (this.refreshIntervalId) {
+      clearInterval(this.refreshIntervalId);
+      this.refreshIntervalId = null;
+    }
   }
 
   // keep all existing methods exactly as they were

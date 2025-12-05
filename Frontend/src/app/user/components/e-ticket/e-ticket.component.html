@@ -1,32 +1,35 @@
 <div class="e-ticket-wrapper" #ticketContent>
-  <div class="e-ticket" *ngIf="booking">
-    <!-- Ticket Header -->
-    <div class="ticket-header">
-      <div class="brand-section">
-        <div class="brand-logo">🎬</div>
-        <div class="brand-info">
-          <h1 class="brand-name">RevTicket</h1>
-          <p class="brand-tagline">Your Movie Experience Partner</p>
+  @if (booking(); as booking) {
+    <div class="e-ticket">
+      <!-- Ticket Header -->
+      <div class="ticket-header">
+        <div class="brand-section">
+          <div class="brand-logo">🎬</div>
+          <div class="brand-info">
+            <h1 class="brand-name">RevTicket</h1>
+            <p class="brand-tagline">Your Movie Experience Partner</p>
+          </div>
+        </div>
+        <div class="ticket-number-section">
+          <span class="ticket-label">TICKET NO.</span>
+          <span class="ticket-number">{{ booking.ticketNumber || booking.id.substring(0, 8).toUpperCase() }}</span>
         </div>
       </div>
-      <div class="ticket-number-section">
-        <span class="ticket-label">TICKET NO.</span>
-        <span class="ticket-number">{{ booking.ticketNumber || booking.id.substring(0, 8).toUpperCase() }}</span>
-      </div>
-    </div>
 
-    <!-- Movie Section -->
-    <div class="movie-section">
-      <div class="movie-poster-container" *ngIf="booking.moviePosterUrl">
-        <img [src]="booking.moviePosterUrl" [alt]="booking.movieTitle" class="movie-poster">
-      </div>
-      <div class="movie-info">
-        <h2 class="movie-title">{{ booking.movieTitle }}</h2>
-        <div class="status-badge" [ngClass]="'status-' + booking.status.toLowerCase()">
-          {{ booking.status === 'CANCELLATION_REQUESTED' ? 'PENDING CANCELLATION' : booking.status }}
+      <!-- Movie Section -->
+      <div class="movie-section">
+        @if (booking.moviePosterUrl) {
+          <div class="movie-poster-container">
+            <img [src]="booking.moviePosterUrl" [alt]="booking.movieTitle" class="movie-poster">
+          </div>
+        }
+        <div class="movie-info">
+          <h2 class="movie-title">{{ booking.movieTitle }}</h2>
+          <div class="status-badge" [ngClass]="'status-' + booking.status.toLowerCase()">
+            {{ booking.status === 'CANCELLATION_REQUESTED' ? 'PENDING CANCELLATION' : booking.status }}
+          </div>
         </div>
       </div>
-    </div>
 
     <!-- Booking Details -->
     <div class="booking-details">
@@ -36,7 +39,9 @@
           <div class="detail-content">
             <span class="detail-label">Theatre</span>
             <span class="detail-value">{{ booking.theaterName }}</span>
-            <span class="detail-sub" *ngIf="booking.theaterLocation">{{ booking.theaterLocation }}</span>
+            @if (booking.theaterLocation) {
+              <span class="detail-sub">{{ booking.theaterLocation }}</span>
+            }
           </div>
         </div>
 
@@ -61,9 +66,11 @@
           <div class="detail-content">
             <span class="detail-label">Seats</span>
             <div class="seats-container">
-              <span class="seat-badge" *ngFor="let seat of (booking.seatLabels || booking.seats)">
-                {{ seat }}
-              </span>
+              @for (seat of (booking.seatLabels || booking.seats); track seat) {
+                <span class="seat-badge">
+                  {{ seat }}
+                </span>
+              }
             </div>
           </div>
         </div>
@@ -103,20 +110,25 @@
         <span class="payment-label">Booking Date</span>
         <span class="payment-value">{{ formatDate(booking.bookingDate) }}</span>
       </div>
-      <div class="payment-row" *ngIf="booking.paymentId">
-        <span class="payment-label">Payment ID</span>
-        <span class="payment-value">{{ booking.paymentId }}</span>
-      </div>
+      @if (booking.paymentId) {
+        <div class="payment-row">
+          <span class="payment-label">Payment ID</span>
+          <span class="payment-value">{{ booking.paymentId }}</span>
+        </div>
+      }
     </div>
 
-    <!-- QR Code Section -->
-    <div class="qr-section">
-      <div class="qr-container">
-        <img *ngIf="qrCodeDataUrl" [src]="qrCodeDataUrl" alt="QR Code" class="qr-code">
-        <div *ngIf="!qrCodeDataUrl" class="qr-placeholder">
-          <div class="qr-loading">Generating QR Code...</div>
+      <!-- QR Code Section -->
+      <div class="qr-section">
+        <div class="qr-container">
+          @if (qrCodeDataUrl) {
+            <img [src]="qrCodeDataUrl" alt="QR Code" class="qr-code">
+          } @else {
+            <div class="qr-placeholder">
+              <div class="qr-loading">Generating QR Code...</div>
+            </div>
+          }
         </div>
-      </div>
       <div class="qr-instructions">
         <p class="qr-title">Show this QR code at the theatre entrance</p>
         <p class="qr-subtitle">Scan to verify booking details</p>
@@ -135,38 +147,43 @@
       </ul>
     </div>
 
-    <!-- Refund Info (if cancelled) -->
-    <div class="refund-section" *ngIf="booking.status === 'CANCELLED' && booking.refundAmount">
-      <div class="refund-alert">
-        <div class="refund-icon">💰</div>
-        <div class="refund-info">
-          <p class="refund-title">Refund Processed</p>
-          <p class="refund-amount">{{ formatCurrency(booking.refundAmount) }}</p>
-          <p class="refund-date">Refunded on {{ formatDate(booking.refundDate!) }}</p>
+      <!-- Refund Info (if cancelled) -->
+      @if (booking.status === 'CANCELLED' && booking.refundAmount) {
+        <div class="refund-section">
+          <div class="refund-alert">
+            <div class="refund-icon">💰</div>
+            <div class="refund-info">
+              <p class="refund-title">Refund Processed</p>
+              <p class="refund-amount">{{ formatCurrency(booking.refundAmount) }}</p>
+              <p class="refund-date">Refunded on {{ formatDate(booking.refundDate!) }}</p>
+            </div>
+          </div>
         </div>
+      }
+
+      <!-- Footer -->
+      <div class="ticket-footer">
+        <p class="footer-text">Thank you for choosing RevTicket! Enjoy your movie! 🍿</p>
+        <p class="footer-support">For support, contact: support&#64;revticket.com | +91-1800-XXX-XXXX</p>
       </div>
     </div>
-
-    <!-- Footer -->
-    <div class="ticket-footer">
-      <p class="footer-text">Thank you for choosing RevTicket! Enjoy your movie! 🍿</p>
-      <p class="footer-support">For support, contact: support&#64;revticket.com | +91-1800-XXX-XXXX</p>
-    </div>
-  </div>
+  }
 </div>
 
 <!-- Action Buttons (Not included in print/PDF) -->
-<div class="ticket-actions" *ngIf="booking">
-  <button class="action-btn btn-download" (click)="downloadPDF()">
-    <span class="btn-icon">📥</span>
-    <span class="btn-text">Download PDF</span>
-  </button>
-  <button class="action-btn btn-share" (click)="shareTicket()">
-    <span class="btn-icon">📤</span>
-    <span class="btn-text">Share Ticket</span>
-  </button>
-  <button class="action-btn btn-print" (click)="printTicket()">
-    <span class="btn-icon">🖨️</span>
-    <span class="btn-text">Print</span>
-  </button>
-</div>
+@if (booking()) {
+  <div class="ticket-actions">
+    <button class="action-btn btn-download" (click)="downloadPDF()">
+      <span class="btn-icon">📥</span>
+      <span class="btn-text">Download PDF</span>
+    </button>
+    <button class="action-btn btn-share" (click)="shareTicket()">
+      <span class="btn-icon">📤</span>
+      <span class="btn-text">Share Ticket</span>
+    </button>
+    <button class="action-btn btn-print" (click)="printTicket()">
+      <span class="btn-icon">🖨️</span>
+      <span class="btn-text">Print</span>
+    </button>
+  </div>
+}

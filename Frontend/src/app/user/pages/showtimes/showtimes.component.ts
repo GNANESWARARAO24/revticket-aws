@@ -30,10 +30,11 @@ export class ShowtimesComponent implements OnInit {
   error = signal('');
   screenNames = signal<Map<string, string>>(new Map());
   
-  selectedLanguage = signal<string>('All');
-  selectedFormat = signal<string>('All');
-  priceRange = signal<string>('All');
+  selectedLanguage = signal('All');
+  selectedFormat = signal('All');
+  priceRange = signal('All');
   sortBy = signal<string>('time');
+  searchTerm = signal('');
 
   dates = computed(() => {
     const dates = [];
@@ -59,7 +60,7 @@ export class ShowtimesComponent implements OnInit {
     return ['All', ...Array.from(langs)];
   });
 
-  formats = signal(['All', '2D', '3D', 'IMAX']);
+
 
   theaterGroups = computed(() => {
     let filtered = this.showtimes();
@@ -95,7 +96,30 @@ export class ShowtimesComponent implements OnInit {
       groups.get(key)!.showtimes.push(show);
     });
 
-    return Array.from(groups.values()).map(group => ({
+    let result = Array.from(groups.values());
+
+    // Search filter
+    if (this.searchTerm().trim()) {
+      const term = this.searchTerm().toLowerCase();
+      result = result.filter(theater => 
+        theater.theaterName.toLowerCase().includes(term) ||
+        theater.location.toLowerCase().includes(term)
+      );
+    }
+
+    // Sort
+    const sortBy = this.sortBy();
+    if (sortBy === 'name') {
+      result.sort((a, b) => a.theaterName.localeCompare(b.theaterName));
+    } else if (sortBy === 'price') {
+      result.sort((a, b) => {
+        const avgPriceA = a.showtimes.reduce((sum, s) => sum + s.ticketPrice, 0) / a.showtimes.length;
+        const avgPriceB = b.showtimes.reduce((sum, s) => sum + s.ticketPrice, 0) / b.showtimes.length;
+        return avgPriceA - avgPriceB;
+      });
+    }
+
+    return result.map(group => ({
       ...group,
       showtimes: group.showtimes.sort((a, b) => 
         new Date(a.showDateTime).getTime() - new Date(b.showDateTime).getTime()
@@ -103,14 +127,11 @@ export class ShowtimesComponent implements OnInit {
     }));
   });
 
-  router = inject(Router);
-
-  constructor(
-    private route: ActivatedRoute,
-    private movieService: MovieService,
-    private showtimeService: ShowtimeService,
-    private alertService: AlertService
-  ) {}
+  private router = inject(Router);
+  private route = inject(ActivatedRoute);
+  private movieService = inject(MovieService);
+  private showtimeService = inject(ShowtimeService);
+  private alertService = inject(AlertService);
 
   ngOnInit(): void {
     window.scrollTo(0, 0);
@@ -140,9 +161,15 @@ export class ShowtimesComponent implements OnInit {
     this.priceRange.set(range);
   }
 
+  onSearch(term: string): void {
+    this.searchTerm.set(term);
+  }
+
   selectShowtime(showtimeId: string): void {
     this.router.navigate(['/user/seat-booking', showtimeId]);
   }
+
+
 
   getAvailabilityStatus(availableSeats: number, totalSeats: number): string {
     const percentage = (availableSeats / totalSeats) * 100;

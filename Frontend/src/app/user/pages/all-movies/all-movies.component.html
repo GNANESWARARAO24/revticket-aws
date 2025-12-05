@@ -23,26 +23,30 @@
   @if (!loading() && movies().length > 0) {
     <div class="movies-container">
       <div class="movies-grid">
-        <div class="movie-card" *ngFor="let movie of movies()" (click)="viewDetails(movie.id)">
-          <div class="card-poster">
-            <img [src]="movie.posterUrl" [alt]="movie.title">
-            <div class="rating-badge">⭐ {{ movie.rating || 'N/A' }}</div>
+        @for (movie of movies(); track movie.id) {
+          <div class="movie-card" (click)="viewDetails(movie.id)">
+            <div class="card-poster">
+              <img [src]="movie.posterUrl" [alt]="movie.title">
+              <div class="rating-badge">⭐ {{ movie.rating || 'N/A' }}</div>
+            </div>
+            <div class="card-content">
+              <h3 class="movie-title">{{ movie.title }}</h3>
+              <div class="movie-meta">
+                <span class="duration">{{ movie.duration }}m</span>
+                <span class="language">{{ movie.language }}</span>
+              </div>
+              <div class="movie-genres">
+                @for (genre of movie.genre?.slice(0, 2); track genre) {
+                  <span class="genre-tag">{{ genre }}</span>
+                }
+              </div>
+              <div class="card-actions">
+                <button class="btn-showtimes" (click)="viewShowtimes($event, movie.id)">Showtimes</button>
+                <button class="btn-book" (click)="bookNow($event, movie.id)">Book</button>
+              </div>
+            </div>
           </div>
-          <div class="card-content">
-            <h3 class="movie-title">{{ movie.title }}</h3>
-            <div class="movie-meta">
-              <span class="duration">{{ movie.duration }}m</span>
-              <span class="language">{{ movie.language }}</span>
-            </div>
-            <div class="movie-genres">
-              <span class="genre-tag" *ngFor="let genre of movie.genre?.slice(0, 2)">{{ genre }}</span>
-            </div>
-            <div class="card-actions">
-              <button class="btn-showtimes" (click)="viewShowtimes($event, movie.id)">Showtimes</button>
-              <button class="btn-book" (click)="bookNow($event, movie.id)">Book</button>
-            </div>
-          </div>
-        </div>
+        }
       </div>
     </div>
   }

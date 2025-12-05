@@ -32,7 +32,7 @@
           <button class="user-btn" (click)="toggleUserMenu()">
             <span class="user-avatar">{{ user.name.charAt(0).toUpperCase() }}</span>
           </button>
-          @if (showUserMenu) {
+          @if (showUserMenu()) {
             <div class="user-dropdown">
               <div class="user-info">
                 <div class="user-name">{{ user.name }}</div>

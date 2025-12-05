@@ -1,6 +1,6 @@
 <div class="home-page">
   <!-- Hero Slider -->
-  <app-hero-slider [movies]="movies().slice(0, 4)"></app-hero-slider>
+  <app-hero-slider [movies]="featuredMovies()"></app-hero-slider>
 
   <!-- Loading State -->
   @if (loading()) {
@@ -11,7 +11,11 @@
 
   <!-- Main Content -->
   @if (!loading()) {
+
+
     <!-- Movie Grid -->
     <app-movie-carousel [movies]="movies()" [title]="'Now Showing'"></app-movie-carousel>
+
+
   }
 </div>

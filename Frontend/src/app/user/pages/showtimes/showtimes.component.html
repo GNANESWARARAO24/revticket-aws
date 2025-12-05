@@ -5,134 +5,83 @@
     <p>Loading showtimes...</p>
   </div>
   } @else {
-  <!-- Movie Header -->
   @if (movie()) {
   <div class="movie-header">
-    <div class="header-container">
-      <div class="movie-info">
-        <h1>{{ movie()!.title }}</h1>
-        <div class="meta">
-          <span class="rating">⭐ {{ movie()!.rating }}/10</span>
-          <span>{{ movie()!.genre.join(', ') }}</span>
-          <span>{{ movie()!.duration }} mins</span>
-        </div>
+    <div class="container">
+      <h1>{{ movie()!.title }}</h1>
+      <div class="meta">
+        <span class="rating">⭐ {{ movie()!.rating }}/10</span>
+        <span>{{ movie()!.genre.join(', ') }}</span>
+        <span>{{ movie()!.duration }} mins</span>
       </div>
     </div>
   </div>
   }
 
-  <!-- Date Selector -->
-  <div class="date-selector-section">
+  <div class="date-selector">
     <div class="container">
       <div class="date-scroll">
         @for (date of dates(); track date) {
         <div class="date-card" [class.active]="formatDate(date) === formatDate(selectedDate())"
-          [class.no-shows]="getShowtimeCountForDate(date) === 0" (click)="selectDate(date)">
-          <div class="date-day">
-            <span>{{ getDayLabel(date) }}</span>
-          </div>
+          (click)="selectDate(date)">
+          <div class="date-day">{{ getDayLabel(date) }}</div>
           <div class="date-num">{{ date | date:'d' }}</div>
           <div class="date-month">{{ date | date:'MMM' }}</div>
-          @if (getShowtimeCountForDate(date) > 0) {
-          <div class="show-count">{{ getShowtimeCountForDate(date) }} shows</div>
-          }
         </div>
         }
       </div>
     </div>
   </div>
 
-  <!-- Filters Section - Dropdown Style -->
-  <div class="filters-section">
+  <div class="search-filters">
     <div class="container">
-      <div class="filters-row">
-        <!-- Language Dropdown -->
-        <div class="filter-dropdown-group">
-          <label>Language</label>
-          <select class="filter-dropdown" [(ngModel)]="selectedLanguage" (ngModelChange)="selectLanguage($event)">
-            @for (lang of languages(); track lang) {
-            <option [value]="lang">{{ lang }}</option>
-            }
-          </select>
-          <span class="dropdown-arrow">▼</span>
-        </div>
-
-        <!-- Price Range Dropdown -->
-        <div class="filter-dropdown-group">
-          <label>Price Range</label>
-          <select class="filter-dropdown" [(ngModel)]="priceRange" (ngModelChange)="selectPriceRange($event)">
-            <option value="All">All</option>
-            <option value="0-200">₹0-200</option>
-            <option value="200-400">₹200-400</option>
-            <option value="400-1000">₹400+</option>
-          </select>
-          <span class="dropdown-arrow">▼</span>
-        </div>
-
-        <!-- Preferred Time Dropdown -->
-        <div class="filter-dropdown-group">
-          <label>Preferred Time</label>
-          <select class="filter-dropdown" [(ngModel)]="selectedFormat" (ngModelChange)="selectFormat($event)">
-            @for (format of formats(); track format) {
-            <option [value]="format">{{ format }}</option>
-            }
-          </select>
-          <span class="dropdown-arrow">▼</span>
-        </div>
-
-        <!-- Sort By Dropdown -->
-        <div class="filter-dropdown-group">
-          <label>Sort By</label>
-          <select class="filter-dropdown" [(ngModel)]="sortBy" (ngModelChange)="sortBy.set($event)">
-            <option value="time">Showtime</option>
-            <option value="price">Price</option>
-            <option value="name">Theater Name</option>
-          </select>
-          <span class="dropdown-arrow">▼</span>
-        </div>
+      <div class="search-bar">
+        <input type="text" placeholder="Search theaters..." [(ngModel)]="searchTerm" (ngModelChange)="onSearch($event)">
+        <span class="search-icon">🔍</span>
+      </div>
+      <div class="filters">
+        <select [(ngModel)]="selectedLanguage" (ngModelChange)="selectLanguage($event)">
+          @for (lang of languages(); track lang) {
+          <option [value]="lang">{{ lang }}</option>
+          }
+        </select>
+        <select [(ngModel)]="priceRange" (ngModelChange)="selectPriceRange($event)">
+          <option value="All">All Prices</option>
+          <option value="0-200">₹0-200</option>
+          <option value="200-400">₹200-400</option>
+          <option value="400-1000">₹400+</option>
+        </select>
+        <select [(ngModel)]="selectedFormat" (ngModelChange)="selectFormat($event)">
+          <option value="All">All Formats</option>
+          <option value="2D">2D</option>
+          <option value="3D">3D</option>
+          <option value="IMAX">IMAX</option>
+        </select>
+        <select [(ngModel)]="sortBy" (ngModelChange)="sortBy.set($event)">
+          <option value="time">Sort by Time</option>
+          <option value="price">Sort by Price</option>
+          <option value="name">Sort by Theater</option>
+        </select>
       </div>
     </div>
   </div>
 
-  <!-- Cinema Listings -->
-  <div class="cinema-section">
+  <div class="theaters">
     <div class="container">
       @if (theaterGroups().length === 0) {
-      <div class="empty-state">
-        <div class="empty-icon">🎬</div>
-        <h3>No Shows Available</h3>
-        <p>{{ error() || 'No showtimes available for the selected date and filters. Try selecting a different date.' }}
-        </p>
+      <div class="empty">
+        <p>No shows available</p>
       </div>
       } @else {
       @for (theater of theaterGroups(); track theater.theaterId) {
-      <div class="cinema-card">
-        <div class="cinema-header">
-          <div class="cinema-info">
-            <div class="cinema-icon">🎭</div>
-            <div class="cinema-details">
-              <h3>{{ theater.theaterName }}</h3>
-              <p>{{ theater.location }}</p>
-            </div>
-          </div>
-          <div class="cinema-meta">
-            <span class="info-icon">ℹ️</span>
-          </div>
-        </div>
-
-        <div class="showtimes-container">
+      <div class="theater-card">
+        <h3>{{ theater.theaterName }}</h3>
+        <p>{{ theater.location }}</p>
+        <div class="showtimes">
           @for (show of theater.showtimes; track show.id) {
-          <button class="showtime-btn" [class]="getAvailabilityStatus(show.availableSeats, show.totalSeats)"
-            (click)="selectShowtime(show.id)">
+          <button class="showtime-btn" (click)="selectShowtime(show.id)">
             <div class="time">{{ show.showDateTime | date:'h:mm a' }}</div>
-            <div class="screen">{{ getScreenLabel(show.screen) }}</div>
             <div class="price">₹{{ show.ticketPrice }}</div>
-            @if (getAvailabilityStatus(show.availableSeats, show.totalSeats) === 'fast-filling') {
-            <div class="badge">Fast Filling</div>
-            }
-            @if (getAvailabilityStatus(show.availableSeats, show.totalSeats) === 'sold-out') {
-            <div class="badge">Sold Out</div>
-            }
           </button>
           }
         </div>

@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
@@ -15,10 +15,10 @@ export class NavbarComponent {
   private router = inject(Router);
   
   currentUser = this.authService.currentUser;
-  showUserMenu = false;
+  showUserMenu = signal(false);
 
   toggleUserMenu(): void {
-    this.showUserMenu = !this.showUserMenu;
+    this.showUserMenu.update(show => !show);
   }
 
   onSearch(value: string): void {
@@ -28,7 +28,7 @@ export class NavbarComponent {
   }
 
   logout(): void {
-    this.showUserMenu = false;
+    this.showUserMenu.set(false);
     this.authService.logout();
     this.router.navigate(['/auth/login']);
   }

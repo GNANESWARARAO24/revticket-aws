@@ -1,4 +1,4 @@
-import { Component, Input, OnInit, OnDestroy, OnChanges } from '@angular/core';
+import { Component, input, OnInit, OnDestroy, signal, effect, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { Movie } from '../../../core/models/movie.model';
@@ -9,10 +9,13 @@ import { Movie } from '../../../core/models/movie.model';
   imports: [CommonModule],
   template: `
     <div class="hero-slider">
-      @if (movies.length > 0) {
+      @if (movies().length > 0) {
         <div class="slider-wrapper">
-          @for (movie of movies; track movie.id; let i = $index) {
-            <div class="slide" [class.active]="i === currentIndex">
+          @for (movie of movies(); track movie.id; let i = $index) {
+            <div class="slide" [class.active]="i === currentIndex()">
+              <div class="slide-bg" [style.background-image]="'url(' + movie.posterUrl + ')'">
+                <div class="slide-overlay"></div>
+              </div>
               <div class="slide-content">
                 <div class="content-left">
                   <div class="movie-badge">{{ movie.language }}</div>
@@ -22,7 +25,6 @@ import { Movie } from '../../../core/models/movie.model';
                     <span class="duration">{{ formatDuration(movie.duration) }}</span>
                     <span class="genre">{{ movie.genre[0] || 'Movie' }}</span>
                   </div>
-
                 </div>
                 <div class="content-right">
                   <img [src]="movie.posterUrl" [alt]="movie.title" class="movie-poster">
@@ -35,12 +37,13 @@ import { Movie } from '../../../core/models/movie.model';
             <button class="control-btn next" (click)="nextSlide()" aria-label="Next">›</button>
           </div>
           <div class="pagination-dots">
-            <span 
-              *ngFor="let movie of movies; let i = index" 
-              class="dot" 
-              [class.active]="i === currentIndex"
-              (click)="goToSlide(i)">
-            </span>
+            @for (movie of movies(); track movie.id; let i = $index) {
+              <span 
+                class="dot" 
+                [class.active]="i === currentIndex()"
+                (click)="goToSlide(i)">
+              </span>
+            }
           </div>
         </div>
       }
@@ -50,10 +53,8 @@ import { Movie } from '../../../core/models/movie.model';
     .hero-slider {
       width: 100%;
       height: 480px;
-      background: linear-gradient(to bottom, #f8f9fa 0%, #ffffff 100%);
       position: relative;
       overflow: hidden;
-      border-bottom: 1px solid #e9ecef;
     }
     .slider-wrapper {
       width: 100%;
@@ -73,6 +74,25 @@ import { Movie } from '../../../core/models/movie.model';
       opacity: 1;
       position: relative;
     }
+    .slide-bg {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-size: cover;
+      background-position: center;
+      filter: blur(3px);
+      transform: scale(1.1);
+    }
+    .slide-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.4);
+    }
     .slide-content {
       max-width: 1400px;
       margin: 0 auto;
@@ -82,37 +102,33 @@ import { Movie } from '../../../core/models/movie.model';
       align-items: center;
       justify-content: space-between;
       gap: 80px;
+      position: relative;
+      z-index: 2;
     }
     .content-left {
       flex: 1;
       max-width: 600px;
     }
     .movie-badge {
-      display: inline-block;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      padding: 8px 20px;
-      border-radius: 20px;
-      font-size: 12px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 1.5px;
+      color: #ffffff;
+      font-size: 14px;
+      font-weight: 600;
       margin-bottom: 20px;
-      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
     }
     .movie-title {
       font-size: 52px;
       font-weight: 900;
-      color: #1a1a2e;
+      color: #ffffff;
       margin: 0 0 20px;
       line-height: 1.1;
+      text-shadow: 2px 2px 8px rgba(0,0,0,0.5);
     }
     .movie-meta {
       display: flex;
       align-items: center;
       gap: 20px;
       margin-bottom: 20px;
-      color: #4a5568;
+      color: #ecf0f1;
       font-size: 15px;
       font-weight: 600;
     }
@@ -120,9 +136,10 @@ import { Movie } from '../../../core/models/movie.model';
       display: flex;
       align-items: center;
       gap: 4px;
-      padding: 6px 12px;
-      background: #f8f9fa;
-      border-radius: 6px;
+      padding: 8px 16px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 20px;
+      backdrop-filter: blur(10px);
     }
 
 
@@ -226,24 +243,29 @@ import { Movie } from '../../../core/models/movie.model';
     }
   `]
 })
-export class HeroSliderComponent implements OnInit, OnChanges, OnDestroy {
-  @Input() movies: Movie[] = [];
+export class HeroSliderComponent implements OnInit, OnDestroy {
+  movies = input<Movie[]>([]);
   
-  currentIndex = 0;
+  currentIndex = signal(0);
   private intervalId: any;
 
-  constructor(private router: Router) {}
 
-  ngOnInit(): void {
-    console.log('Hero slider initialized with', this.movies.length, 'movies');
-    if (this.movies.length > 1) {
-      this.startAutoSlide();
-    }
+
+  private router = inject(Router);
+
+  constructor() {
+    effect(() => {
+      console.log('Movies changed:', this.movies().length);
+      this.stopAutoSlide();
+      if (this.movies().length > 1) {
+        this.startAutoSlide();
+      }
+    });
   }
 
-  ngOnChanges(): void {
-    console.log('Movies changed:', this.movies.length);
-    if (this.movies.length > 1 && !this.intervalId) {
+  ngOnInit(): void {
+    console.log('Hero slider initialized with', this.movies().length, 'movies');
+    if (this.movies().length > 1) {
       this.startAutoSlide();
     }
   }
@@ -256,11 +278,11 @@ export class HeroSliderComponent implements OnInit, OnChanges, OnDestroy {
 
   startAutoSlide(): void {
     this.stopAutoSlide();
-    console.log('Starting auto-slide with 3 second interval');
+    console.log('Starting auto-slide with 4 second interval');
     this.intervalId = setInterval(() => {
       console.log('Auto-sliding to next slide');
       this.nextSlide();
-    }, 3000);
+    }, 4000);
   }
 
   stopAutoSlide(): void {
@@ -271,21 +293,22 @@ export class HeroSliderComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   nextSlide(): void {
-    this.currentIndex = (this.currentIndex + 1) % this.movies.length;
+    this.currentIndex.set((this.currentIndex() + 1) % this.movies().length);
+    console.log('Current index:', this.currentIndex());
   }
 
   prevSlide(): void {
-    this.currentIndex = this.currentIndex === 0 ? this.movies.length - 1 : this.currentIndex - 1;
+    this.currentIndex.set(this.currentIndex() === 0 ? this.movies().length - 1 : this.currentIndex() - 1);
     this.resetAutoSlide();
   }
 
   goToSlide(index: number): void {
-    this.currentIndex = index;
+    this.currentIndex.set(index);
     this.resetAutoSlide();
   }
 
   private resetAutoSlide(): void {
-    if (this.movies.length > 1) {
+    if (this.movies().length > 1) {
       this.stopAutoSlide();
       this.startAutoSlide();
     }

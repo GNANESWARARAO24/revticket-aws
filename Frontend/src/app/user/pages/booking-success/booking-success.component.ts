@@ -1,4 +1,4 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, ActivatedRoute, Router } from '@angular/router';
 import { AlertService } from '../../../core/services/alert.service';
@@ -33,12 +33,10 @@ export class BookingSuccessComponent implements OnInit {
   booking = signal<BookingViewModel | null>(null);
   loading = signal(true);
 
-  constructor(
-    private route: ActivatedRoute,
-    private router: Router,
-    private bookingService: BookingService,
-    private alertService: AlertService
-  ) {}
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
+  private bookingService = inject(BookingService);
+  private alertService = inject(AlertService);
 
   ngOnInit(): void {
     const id = this.route.snapshot.paramMap.get('bookingId') || '';

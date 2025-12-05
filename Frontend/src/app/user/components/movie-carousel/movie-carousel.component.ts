@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { Component, input, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { Movie } from '../../../core/models/movie.model';
@@ -10,10 +10,11 @@ import { Movie } from '../../../core/models/movie.model';
   template: `
     <section class="movie-grid-section">
       <div class="section-header">
-        <h2 class="section-title">{{ title }}</h2>
+        <h2 class="section-title">{{ title() }}</h2>
       </div>
       <div class="movies-grid">
-        <div class="movie-card" *ngFor="let movie of movies" (click)="viewDetails(movie.id)">
+        @for (movie of movies(); track movie.id) {
+        <div class="movie-card" (click)="viewDetails(movie.id)">
           <div class="card-poster">
             <img [src]="movie.posterUrl" [alt]="movie.title">
             <div class="rating-badge">⭐ {{ movie.rating || 'N/A' }}</div>
@@ -25,7 +26,9 @@ import { Movie } from '../../../core/models/movie.model';
               <span class="duration">{{ movie.duration }}m</span>
             </div>
             <div class="movie-genres">
-              <span class="genre-tag" *ngFor="let genre of movie.genre.slice(0, 2)">{{ genre }}</span>
+              @for (genre of movie.genre.slice(0, 2); track genre) {
+                <span class="genre-tag">{{ genre }}</span>
+              }
             </div>
             <div class="card-actions">
               <button class="btn-showtimes" (click)="viewShowtimes($event, movie.id)">Showtimes</button>
@@ -33,6 +36,7 @@ import { Movie } from '../../../core/models/movie.model';
             </div>
           </div>
         </div>
+        }
       </div>
     </section>
   `,
@@ -192,10 +196,10 @@ import { Movie } from '../../../core/models/movie.model';
   `]
 })
 export class MovieCarouselComponent {
-  @Input() movies: Movie[] = [];
-  @Input() title: string = 'Now Showing';
+  movies = input<Movie[]>([]);
+  title = input<string>('Now Showing');
 
-  constructor(private router: Router) {}
+  private router = inject(Router);
 
   viewDetails(movieId: string): void {
     this.router.navigate(['/user/movie-details', movieId]);
@@ -203,11 +207,11 @@ export class MovieCarouselComponent {
 
   viewShowtimes(event: Event, movieId: string): void {
     event.stopPropagation();
-    this.router.navigate(['/user/movie-details', movieId]);
+    this.router.navigate(['/user/showtimes', movieId]);
   }
 
   bookNow(event: Event, movieId: string): void {
     event.stopPropagation();
-    this.router.navigate(['/user/movie-details', movieId]);
+    this.router.navigate(['/user/showtimes', movieId]);
   }
 }

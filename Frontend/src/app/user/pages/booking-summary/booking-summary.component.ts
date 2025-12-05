@@ -1,4 +1,4 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { BookingDraft, BookingCostBreakdown } from '../../../core/models/booking.model';
@@ -15,10 +15,8 @@ export class BookingSummaryComponent implements OnInit {
   bookingDraft = signal<BookingDraft | null>(null);
   costBreakdown = signal<BookingCostBreakdown | undefined>(undefined);
 
-  constructor(
-    private bookingService: BookingService,
-    private router: Router
-  ) {}
+  private bookingService = inject(BookingService);
+  private router = inject(Router);
 
   ngOnInit(): void {
     const draft = this.bookingService.getCurrentBooking();

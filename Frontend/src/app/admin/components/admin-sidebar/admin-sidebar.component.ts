@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
@@ -11,7 +11,7 @@ import { AlertService } from '../../../core/services/alert.service';
   templateUrl: './admin-sidebar.component.html',
   styleUrls: ['./admin-sidebar.component.css']
 })
-export class AdminSidebarComponent {
+export class AdminSidebarComponent implements OnInit {
   private authService = inject(AuthService);
   private router = inject(Router);
   private alertService = inject(AlertService);
