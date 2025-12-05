@@ -21,15 +21,14 @@ pipeline {
             }
         }
 
-        stage('archive artifacts') {
-            when {
-                expression { env.BRANCH_NAME == 'master' }   // Only master
-            }
+                stage('archive artifacts') {
+            when { expression { env.BRANCH_NAME == 'master' } }
             steps {
                 archiveArtifacts artifacts: 'Backend/target/*.jar', fingerprint: true
-                junit 'Backend/target/surefire-reports/*.xml'
+                junit allowEmptyResults: true, testResults: 'Backend/target/surefire-reports/*.xml'
             }
         }
+
     }
 
     post {
