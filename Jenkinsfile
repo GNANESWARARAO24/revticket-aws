@@ -110,7 +110,7 @@ pipeline {
                 script {
                     retry(10) {
                         sleep 10
-                        sh "curl -f http://localhost:${BACKEND_HOST_PORT}/actuator/health"
+                        sh "curl -f -s http://localhost:${BACKEND_HOST_PORT}/actuator/health || exit 1"
                     }
                 }
                 echo 'Application is healthy and ready!'
