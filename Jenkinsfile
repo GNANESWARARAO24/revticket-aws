@@ -3,11 +3,10 @@ pipeline {
     
     environment {
         PATH = "/usr/local/bin:${env.PATH}"
-        DOCKER_REGISTRY = 'docker.io'
-        DOCKER_CREDENTIALS_ID = 'docker-credentials'
-        BACKEND_IMAGE = 'revticket-backend'
-        FRONTEND_IMAGE = 'revticket-frontend'
-        BUILD_TAG = "${env.BUILD_NUMBER}-${env.GIT_COMMIT?.take(7) ?: 'latest'}"
+        DOCKER_HUB_USERNAME = 'harshwarbhe'
+        BACKEND_IMAGE = "${DOCKER_HUB_USERNAME}/revticket-backend"
+        FRONTEND_IMAGE = "${DOCKER_HUB_USERNAME}/revticket-frontend"
+        BUILD_TAG = "${env.BUILD_NUMBER}"
     }
     
     options {
@@ -54,19 +53,40 @@ pipeline {
             }
         }
         
-        stage('Push to Registry') {
-            when {
-                branch 'master'
-            }
+        stage('Tag Images') {
             steps {
                 script {
-                    docker.withRegistry("https://${DOCKER_REGISTRY}", DOCKER_CREDENTIALS_ID) {
+                    if (isUnix()) {
+                        sh "docker tag revticket-backend:latest ${BACKEND_IMAGE}:${BUILD_TAG}"
+                        sh "docker tag revticket-backend:latest ${BACKEND_IMAGE}:latest"
+                        sh "docker tag revticket-frontend:latest ${FRONTEND_IMAGE}:${BUILD_TAG}"
+                        sh "docker tag revticket-frontend:latest ${FRONTEND_IMAGE}:latest"
+                    } else {
+                        bat "docker tag revticket-backend:latest ${BACKEND_IMAGE}:${BUILD_TAG}"
+                        bat "docker tag revticket-backend:latest ${BACKEND_IMAGE}:latest"
+                        bat "docker tag revticket-frontend:latest ${FRONTEND_IMAGE}:${BUILD_TAG}"
+                        bat "docker tag revticket-frontend:latest ${FRONTEND_IMAGE}:latest"
+                    }
+                }
+            }
+        }
+        
+        stage('Push to Registry') {
+            steps {
+                script {
+                    withCredentials([usernamePassword(credentialsId: 'docker-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                         if (isUnix()) {
-                            sh "docker push ${BACKEND_IMAGE}:${BUILD_TAG} && docker push ${BACKEND_IMAGE}:latest"
-                            sh "docker push ${FRONTEND_IMAGE}:${BUILD_TAG} && docker push ${FRONTEND_IMAGE}:latest"
+                            sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
+                            sh "docker push ${BACKEND_IMAGE}:${BUILD_TAG}"
+                            sh "docker push ${BACKEND_IMAGE}:latest"
+                            sh "docker push ${FRONTEND_IMAGE}:${BUILD_TAG}"
+                            sh "docker push ${FRONTEND_IMAGE}:latest"
                         } else {
-                            bat "docker push ${BACKEND_IMAGE}:${BUILD_TAG} && docker push ${BACKEND_IMAGE}:latest"
-                            bat "docker push ${FRONTEND_IMAGE}:${BUILD_TAG} && docker push ${FRONTEND_IMAGE}:latest"
+                            bat 'echo %DOCKER_PASS% | docker login -u %DOCKER_USER% --password-stdin'
+                            bat "docker push ${BACKEND_IMAGE}:${BUILD_TAG}"
+                            bat "docker push ${BACKEND_IMAGE}:latest"
+                            bat "docker push ${FRONTEND_IMAGE}:${BUILD_TAG}"
+                            bat "docker push ${FRONTEND_IMAGE}:latest"
                         }
                     }
                 }
@@ -78,9 +98,13 @@ pipeline {
                 script {
                     if (isUnix()) {
                         sh 'docker-compose down || true'
+                        sh 'docker stop revticket-mysql revticket-mongodb revticket-backend revticket-frontend || true'
+                        sh 'docker rm revticket-mysql revticket-mongodb revticket-backend revticket-frontend || true'
                         sh 'docker-compose up -d'
                     } else {
                         bat 'docker-compose down || exit 0'
+                        bat 'docker stop revticket-mysql revticket-mongodb revticket-backend revticket-frontend || exit 0'
+                        bat 'docker rm revticket-mysql revticket-mongodb revticket-backend revticket-frontend || exit 0'
                         bat 'docker-compose up -d'
                     }
                 }
