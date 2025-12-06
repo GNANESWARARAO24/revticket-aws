@@ -92,6 +92,17 @@ pipeline {
                 junit allowEmptyResults: true, testResults: 'Backend/target/surefire-reports/*.xml'
             }
         }
+
+        stage('Deploy with Docker Compose') {
+            steps {
+                script {
+                    echo "Deploying application with MySQL and MongoDB..."
+                    sh 'docker-compose down || true'
+                    sh 'docker-compose up -d'
+                    sh 'docker-compose ps'
+                }
+            }
+        }
     }
 
     post {
