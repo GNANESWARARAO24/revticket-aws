@@ -7,19 +7,21 @@
 # ============================================
 
 # Stage 1: Build
-FROM eclipse-temurin:17-jdk-alpine AS build
+FROM eclipse-temurin:17-jdk AS build
 WORKDIR /app
 
-# Copy Maven configuration and source code
+# Copy Maven wrapper and configuration
+COPY mvnw .
+COPY .mvn .mvn
 COPY pom.xml .
 COPY src ./src
 
-# Install Maven and build the application (skip tests for faster build)
-RUN apk add --no-cache maven && \
-    mvn clean package -DskipTests
+# Build the application (skip tests for faster build)
+RUN chmod +x mvnw && ./mvnw clean package -DskipTests || \
+    (apt-get update && apt-get install -y maven && mvn clean package -DskipTests)
 
 # Stage 2: Runtime
-FROM eclipse-temurin:17-jre-alpine
+FROM eclipse-temurin:17-jre
 WORKDIR /app
 
 # Copy the built JAR from build stage
