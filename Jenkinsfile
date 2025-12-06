@@ -61,58 +61,6 @@ pipeline {
             }
         }
 
-        stage('Build Docker Images') {
-            steps {
-                script {
-                    echo "Building Docker Images..."
-                    
-                    // Build Backend Image
-                    dir('Backend') {
-                        backendImage = docker.build("${BACKEND_IMAGE}:${IMAGE_TAG}")
-                        docker.build("${BACKEND_IMAGE}:latest")
-                    }
-                    
-                    // Build Frontend Image
-                    dir('Frontend') {
-                        frontendImage = docker.build("${FRONTEND_IMAGE}:${IMAGE_TAG}")
-                        docker.build("${FRONTEND_IMAGE}:latest")
-                    }
-                }
-            }
-        }
-
-        stage('Push to Docker Hub') {
-            steps {
-                script {
-                    echo "Pushing images to Docker Hub..."
-                    docker.withRegistry('https://registry.hub.docker.com', 'dockerhub-credentials') {
-                        // Push Backend Images
-                        docker.image("${BACKEND_IMAGE}:${IMAGE_TAG}").push()
-                        docker.image("${BACKEND_IMAGE}:latest").push()
-                        
-                        // Push Frontend Images
-                        docker.image("${FRONTEND_IMAGE}:${IMAGE_TAG}").push()
-                        docker.image("${FRONTEND_IMAGE}:latest").push()
-                    }
-                }
-            }
-        }
-
-        stage('Deploy with Docker Compose') {
-            steps {
-                script {
-                    echo "Deploying application..."
-                    if (isUnix()) {
-                        sh 'docker-compose down'
-                        sh 'docker-compose up -d --build'
-                    } else {
-                        bat 'docker-compose down'
-                        bat 'docker-compose up -d --build'
-                    }
-                }
-            }
-        }
-
         stage('Archive Artifacts') {
             steps {
                 archiveArtifacts artifacts: 'Backend/target/*.jar', fingerprint: true
@@ -122,16 +70,8 @@ pipeline {
     }
 
     post {
-        always {
-            script {
-                echo "Cleaning up workspace..."
-                sh 'docker system prune -f || true'
-            }
-        }
         success {
-            echo "✅ Build and Deployment SUCCESS"
-            echo "Backend Image: ${BACKEND_IMAGE}:${IMAGE_TAG}"
-            echo "Frontend Image: ${FRONTEND_IMAGE}:${IMAGE_TAG}"
+            echo "✅ Build and Tests SUCCESS"
         }
         failure {
             echo "❌ Build FAILED"
