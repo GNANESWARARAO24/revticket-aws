@@ -23,48 +23,6 @@ pipeline {
             }
         }
         
-        stage('Build Backend') {
-            steps {
-                dir('Backend') {
-                    script {
-                        if (isUnix()) {
-                            sh './mvnw clean package -DskipTests'
-                        } else {
-                            bat 'mvnw.cmd clean package -DskipTests'
-                        }
-                    }
-                }
-            }
-            post {
-                success {
-                    archiveArtifacts artifacts: 'Backend/target/*.jar', fingerprint: true
-                }
-            }
-        }
-        
-
-        
-        stage('Build Frontend') {
-            steps {
-                dir('Frontend') {
-                    script {
-                        if (isUnix()) {
-                            sh 'npm ci && npm run build'
-                        } else {
-                            bat 'npm ci && npm run build'
-                        }
-                    }
-                }
-            }
-            post {
-                success {
-                    archiveArtifacts artifacts: 'Frontend/dist/**/*', fingerprint: true
-                }
-            }
-        }
-        
-
-        
         stage('Build Docker Images') {
             parallel {
                 stage('Backend Image') {
