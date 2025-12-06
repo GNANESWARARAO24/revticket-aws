@@ -157,11 +157,6 @@
                 <span class="btn-text">View E-Ticket</span>
               </button>
               
-              <button class="action-btn btn-secondary" (click)="downloadTicket(booking)">
-                <span class="btn-icon">📥</span>
-                <span class="btn-text">Download PDF</span>
-              </button>
-              
               <button class="action-btn btn-danger" (click)="cancelBooking(booking)" [disabled]="!canCancel(booking)">
                 <span class="btn-icon">❌</span>
                 <span class="btn-text">{{ canCancel(booking) ? 'Cancel Booking' : 'Cannot Cancel' }}</span>

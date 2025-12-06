@@ -42,7 +42,8 @@ export class AddMovieComponent implements OnInit {
     'Romance', 'Sci-Fi', 'Sports', 'Thriller', 'War', 'Western'
   ];
   selectedGenres = signal<string[]>([]);
-  availableLanguages = signal<string[]>([]);
+  availableLanguages = ['English', 'Hindi', 'Tamil', 'Telugu', 'Malayalam', 'Kannada', 'Bengali', 'Marathi', 'Punjabi', 'Gujarati'];
+  selectedLanguages = signal<string[]>([]);
 
   constructor() {
     this.movieForm = this.fb.group({
@@ -50,7 +51,6 @@ export class AddMovieComponent implements OnInit {
       description: ['', [Validators.required, Validators.minLength(10)]],
       duration: ['', [Validators.required, Validators.min(1)]],
       director: [''],
-      language: ['', Validators.required],
       releaseDate: ['', Validators.required],
       posterUrl: [''],
       backgroundUrl: [''],
@@ -59,23 +59,11 @@ export class AddMovieComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.loadLanguages();
     this.route.queryParams.subscribe(params => {
       if (params['id']) {
         this.isEditMode.set(true);
         this.editingMovieId.set(params['id']);
         this.loadMovieForEdit();
-      }
-    });
-  }
-
-  loadLanguages(): void {
-    this.languageService.getAllLanguages().subscribe({
-      next: (languages) => {
-        this.availableLanguages.set(languages.map(l => l.name));
-        if (languages.length === 0) {
-          this.languageService.initializeLanguages().subscribe();
-        }
       }
     });
   }
@@ -92,12 +80,16 @@ export class AddMovieComponent implements OnInit {
           description: movie.description || '',
           duration: movie.duration,
           director: movie.director || '',
-          language: movie.language || 'English',
           releaseDate: movie.releaseDate ? new Date(movie.releaseDate).toISOString().split('T')[0] : '',
           posterUrl: movie.posterUrl || '',
           backgroundUrl: movie.backgroundUrl || '',
           trailerUrl: movie.trailerUrl || ''
         });
+        
+        if (movie.language) {
+          const langs = Array.isArray(movie.language) ? movie.language : [movie.language];
+          this.selectedLanguages.set(langs);
+        }
         
         if (Array.isArray(movie.genre)) {
           this.selectedGenres.set(movie.genre);
@@ -127,12 +119,21 @@ export class AddMovieComponent implements OnInit {
     }
   }
 
+  toggleLanguage(language: string): void {
+    const current = this.selectedLanguages();
+    if (current.includes(language)) {
+      this.selectedLanguages.set(current.filter(l => l !== language));
+    } else {
+      this.selectedLanguages.set([...current, language]);
+    }
+  }
+
   getAvailableGenres(): string[] {
     return this.availableGenres.filter(g => !this.selectedGenres().includes(g));
   }
 
   onSubmit(): void {
-    if (this.movieForm.valid && this.selectedGenres().length > 0) {
+    if (this.movieForm.valid && this.selectedGenres().length > 0 && this.selectedLanguages().length > 0) {
       this.submitting.set(true);
       const formValue = this.movieForm.value;
 
@@ -142,7 +143,7 @@ export class AddMovieComponent implements OnInit {
         duration: parseInt(formValue.duration),
         director: formValue.director || null,
         genre: this.selectedGenres(),
-        language: formValue.language,
+        language: this.selectedLanguages().join(', '),
         releaseDate: new Date(formValue.releaseDate),
         posterUrl: formValue.posterUrl || null,
         backgroundUrl: formValue.backgroundUrl || null,
@@ -182,6 +183,8 @@ export class AddMovieComponent implements OnInit {
       });
       if (this.selectedGenres().length === 0) {
         this.alertService.error('Please select at least one genre');
+      } else if (this.selectedLanguages().length === 0) {
+        this.alertService.error('Please select at least one language');
       } else {
         this.alertService.error('Please fill all required fields correctly');
       }
@@ -312,6 +315,12 @@ export class AddMovieComponent implements OnInit {
 
   isYouTubeUrl(url: string): boolean {
     return url.includes('youtube.com') || url.includes('youtu.be');
+  }
+
+  formatDate(dateStr: string): string {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
   }
 
   getFieldError(fieldName: string): string {

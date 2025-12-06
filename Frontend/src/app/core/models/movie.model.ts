@@ -15,6 +15,8 @@ export interface Movie {
   isActive: boolean;
   totalShows?: number;
   totalBookings?: number;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 export interface Showtime {

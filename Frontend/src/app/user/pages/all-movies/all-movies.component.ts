@@ -40,7 +40,14 @@ export class AllMoviesComponent implements OnInit {
     const city = this.locationService.selectedCity();
     this.movieService.getMovies(city || undefined).subscribe({
       next: (movies) => {
-        this.movies.set(movies.filter(m => m.isActive));
+        const sortedMovies = movies
+          .filter(m => m.isActive)
+          .sort((a, b) => {
+            const dateA = a.createdAt ? new Date(a.createdAt).getTime() : new Date(a.releaseDate).getTime();
+            const dateB = b.createdAt ? new Date(b.createdAt).getTime() : new Date(b.releaseDate).getTime();
+            return dateB - dateA;
+          });
+        this.movies.set(sortedMovies);
         this.loading.set(false);
       },
       error: () => {

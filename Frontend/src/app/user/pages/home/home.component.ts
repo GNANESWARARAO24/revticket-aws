@@ -86,7 +86,11 @@ export class HomeComponent implements OnInit {
       next: (movies) => {
         const activeMovies = movies
           .filter(movie => movie.isActive)
-          .sort((a, b) => new Date(b.releaseDate).getTime() - new Date(a.releaseDate).getTime());
+          .sort((a, b) => {
+            const dateA = a.createdAt ? new Date(a.createdAt).getTime() : new Date(a.releaseDate).getTime();
+            const dateB = b.createdAt ? new Date(b.createdAt).getTime() : new Date(b.releaseDate).getTime();
+            return dateB - dateA;
+          });
         this.movies.set(activeMovies);
         this.loading.set(false);
       },

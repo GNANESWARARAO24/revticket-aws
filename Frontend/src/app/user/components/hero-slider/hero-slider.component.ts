@@ -13,9 +13,15 @@ import { Movie } from '../../../core/models/movie.model';
         <div class="slider-wrapper">
           @for (movie of movies(); track movie.id; let i = $index) {
             <div class="slide" [class.active]="i === currentIndex()">
-              <div class="slide-bg" [style.background-image]="'url(' + (movie.backgroundUrl || movie.posterUrl) + ')'">
-                <div class="slide-overlay"></div>
-              </div>
+              @if (movie.backgroundUrl) {
+                <div class="slide-bg" [style.background-image]="'url(' + movie.backgroundUrl + ')'">
+                  <div class="slide-overlay"></div>
+                </div>
+              } @else {
+                <div class="slide-bg" [style.background-image]="'url(' + movie.posterUrl + ')'">
+                  <div class="slide-overlay" style="background: rgba(0, 0, 0, 0.7);"></div>
+                </div>
+              }
               <div class="slide-content">
                 <div class="content-left">
                   <div class="movie-badge">{{ movie.language }}</div>

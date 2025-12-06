@@ -21,7 +21,7 @@
           <h3>Basic Details</h3>
         </div>
 
-        <div class="form-grid">
+        <div class="form-row">
           <div class="form-group">
             <label for="title">🎬 Movie Title *</label>
             <input 
@@ -43,7 +43,9 @@
               formControlName="director"
               placeholder="Enter director name">
           </div>
+        </div>
 
+        <div class="form-row">
           <div class="form-group">
             <label for="duration">⏱️ Duration (minutes) *</label>
             <input 
@@ -59,80 +61,78 @@
           </div>
 
           <div class="form-group">
-            <label for="language">🌐 Language *</label>
-            <select 
-              id="language" 
-              formControlName="language"
-              [class.error]="movieForm.get('language')?.invalid && movieForm.get('language')?.touched">
-              <option value="" disabled>Select Language</option>
-              <option value="English">English</option>
-              <option value="Hindi">Hindi</option>
-              <option value="Tamil">Tamil</option>
-              <option value="Telugu">Telugu</option>
-              <option value="Malayalam">Malayalam</option>
-              <option value="Kannada">Kannada</option>
-              <option value="Bengali">Bengali</option>
-              <option value="Marathi">Marathi</option>
-              <option value="Punjabi">Punjabi</option>
-              <option value="Gujarati">Gujarati</option>
-              @for (lang of availableLanguages(); track lang) {
-                <option [value]="lang">{{ lang }}</option>
-              }
-            </select>
-            @if (movieForm.get('language')?.invalid && movieForm.get('language')?.touched) {
-              <span class="error-message">{{ getFieldError('language') }}</span>
-            }
-          </div>
-
-          <div class="form-group">
             <label for="releaseDate">📅 Release Date *</label>
-            <input 
-              type="date" 
-              id="releaseDate" 
-              formControlName="releaseDate"
-              [class.error]="movieForm.get('releaseDate')?.invalid && movieForm.get('releaseDate')?.touched">
+            <div class="date-input-wrapper">
+              <input 
+                type="date" 
+                id="releaseDate" 
+                formControlName="releaseDate"
+                [class.error]="movieForm.get('releaseDate')?.invalid && movieForm.get('releaseDate')?.touched">
+              @if (movieForm.get('releaseDate')?.value) {
+                <span class="date-display">{{ formatDate(movieForm.get('releaseDate')?.value) }}</span>
+              }
+            </div>
             @if (movieForm.get('releaseDate')?.invalid && movieForm.get('releaseDate')?.touched) {
               <span class="error-message">{{ getFieldError('releaseDate') }}</span>
             }
           </div>
         </div>
 
-        <!-- Genre Selection & Description -->
-        <div class="form-grid">
-          <div class="form-group">
-            <label>🎭 Genre * <span class="hint-inline">(Select multiple)</span></label>
-            <div class="genre-chips-container">
-              @for (genre of availableGenres; track genre) {
-                <button 
-                  type="button"
-                  class="genre-chip"
-                  [class.selected]="selectedGenres().includes(genre)"
-                  (click)="toggleGenre(genre)">
-                  {{ genre }}
-                </button>
-              }
+        <div class="form-group-full">
+          <label>🌐 Language * <span class="hint-inline">(Select multiple)</span></label>
+          <div class="language-chips-container">
+            @for (lang of availableLanguages; track lang) {
+              <button 
+                type="button"
+                class="language-chip"
+                [class.selected]="selectedLanguages().includes(lang)"
+                (click)="toggleLanguage(lang)">
+                {{ lang }}
+              </button>
+            }
+          </div>
+          @if (selectedLanguages().length > 0) {
+            <div class="selected-count">
+              ✓ {{ selectedLanguages().length }} language(s): {{ selectedLanguages().join(', ') }}
             </div>
-            @if (selectedGenres().length > 0) {
-              <div class="selected-count">
-                ✓ {{ selectedGenres().length }} genre(s) selected: {{ selectedGenres().join(', ') }}
-              </div>
-            } @else {
-              <small class="hint">Please select at least one genre</small>
-            }
-          </div>
+          } @else {
+            <small class="hint">Please select at least one language</small>
+          }
+        </div>
 
-          <div class="form-group">
-            <label for="description">📝 Description *</label>
-            <textarea 
-              id="description" 
-              formControlName="description"
-              placeholder="Enter a compelling movie description..."
-              rows="8"
-              [class.error]="movieForm.get('description')?.invalid && movieForm.get('description')?.touched"></textarea>
-            @if (movieForm.get('description')?.invalid && movieForm.get('description')?.touched) {
-              <span class="error-message">{{ getFieldError('description') }}</span>
+        <div class="form-group-full">
+          <label>🎭 Genre * <span class="hint-inline">(Select multiple)</span></label>
+          <div class="genre-chips-container">
+            @for (genre of availableGenres; track genre) {
+              <button 
+                type="button"
+                class="genre-chip"
+                [class.selected]="selectedGenres().includes(genre)"
+                (click)="toggleGenre(genre)">
+                {{ genre }}
+              </button>
             }
           </div>
+          @if (selectedGenres().length > 0) {
+            <div class="selected-count">
+              ✓ {{ selectedGenres().length }} genre(s) selected: {{ selectedGenres().join(', ') }}
+            </div>
+          } @else {
+            <small class="hint">Please select at least one genre</small>
+          }
+        </div>
+
+        <div class="form-group-full">
+          <label for="description">📝 Description *</label>
+          <textarea 
+            id="description" 
+            formControlName="description"
+            placeholder="Enter a compelling movie description..."
+            rows="6"
+            [class.error]="movieForm.get('description')?.invalid && movieForm.get('description')?.touched"></textarea>
+          @if (movieForm.get('description')?.invalid && movieForm.get('description')?.touched) {
+            <span class="error-message">{{ getFieldError('description') }}</span>
+          }
         </div>
 
         <!-- Media Assets Section -->
