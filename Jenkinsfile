@@ -70,9 +70,14 @@ pipeline {
         
         stage('Push to Registry') {
             when {
-                anyOf {
-                    branch 'main'
-                    branch 'master'
+                allOf {
+                    anyOf {
+                        branch 'main'
+                        branch 'master'
+                    }
+                    expression { 
+                        return env.PUSH_TO_REGISTRY == 'true'
+                    }
                 }
             }
             steps {
@@ -92,7 +97,7 @@ pipeline {
         stage('Deploy') {
             steps {
                 sh 'docker-compose down || true'
-                sh 'docker-compose up -d --build'
+                sh 'docker-compose up -d'
                 sh 'sleep 30'
                 sh 'docker-compose ps'
             }
