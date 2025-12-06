@@ -10,53 +10,53 @@ services:
     ports:
       - "3306:3306"
     volumes:
-      - mysql-data:/var/lib/mysql
+      - mysql_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-      timeout: 20s
-      retries: 10
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-pAdmin123"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - revticket-network
 
   mongodb:
     image: mongo:7.0
     container_name: revticket-mongodb
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: root
-      MONGO_INITDB_ROOT_PASSWORD: root
-      MONGO_INITDB_DATABASE: revticket_reviews
     ports:
       - "27017:27017"
     volumes:
-      - mongo-data:/data/db
+      - mongo_data:/data/db
     healthcheck:
       test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
-      timeout: 20s
-      retries: 10
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - revticket-network
 
   backend:
-    image: harshwarbhe/revticket-backend:latest
+    build: ./Backend
     container_name: revticket-backend
-    depends_on:
-      mysql:
-        condition: service_healthy
-      mongodb:
-        condition: service_healthy
+    ports:
+      - "8080:8080"
     environment:
       MYSQL_HOST: mysql
       MYSQL_DATABASE: revticket_db
       MYSQL_USER: root
       MYSQL_PASSWORD: Admin123
-      MONGODB_URI: mongodb://root:root@mongodb:27017/revticket_reviews?authSource=admin
-    ports:
-      - "8080:8080"
-
-  frontend:
-    image: harshwarbhe/revticket-frontend:latest
-    container_name: revticket-frontend
+      MONGODB_URI: mongodb://mongodb:27017/revticket_reviews
     depends_on:
-      - backend
-    ports:
-      - "80:80"
+      mysql:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+    networks:
+      - revticket-network
 
 volumes:
-  mysql-data:
-  mongo-data:
+  mysql_data:
+  mongo_data:
+
+networks:
+  revticket-network:
+    driver: bridge

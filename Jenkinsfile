@@ -1,146 +1,68 @@
-// ============================================
-// RevTicket CI/CD Pipeline with Docker
-// ============================================
-// Prerequisites:
-// 1. Jenkins with Docker plugin installed
-// 2. Docker installed on Jenkins server
-// 3. Docker Hub credentials added to Jenkins (ID: 'dockerhub-credentials')
-// 4. GitHub webhook configured for automatic builds
-// ============================================
-
 pipeline {
     agent any
     
     environment {
-        JAVA_HOME = "/opt/homebrew/opt/openjdk@17"
-        PATH = "${JAVA_HOME}/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"
-        DOCKERHUB_USERNAME = 'harshwarbhe'
-        BACKEND_IMAGE = "${DOCKERHUB_USERNAME}/revticket-backend"
-        FRONTEND_IMAGE = "${DOCKERHUB_USERNAME}/revticket-frontend"
-        IMAGE_TAG = "${BUILD_NUMBER}"
+        DOCKER_IMAGE = 'revticket-backend'
+        DOCKER_TAG = "${BUILD_NUMBER}"
     }
-
+    
     stages {
-        
         stage('Checkout') {
             steps {
-                echo "Checking out code from GitHub..."
-                git branch: 'master', url: 'https://github.com/harshWarbhe/revTicket.git'
+                checkout scm
             }
         }
-
-        stage('Build Backend') {
+        
+        stage('Build') {
             steps {
-                echo "Building Backend..."
                 dir('Backend') {
-                    script {
-                        if (isUnix()) {
-                            sh 'mvn dependency:purge-local-repository -DactTransitively=false -DreResolve=false'
-                            sh 'mvn clean package -DskipTests -U'
-                        } else {
-                            bat 'mvn dependency:purge-local-repository -DactTransitively=false -DreResolve=false'
-                            bat 'mvn clean package -DskipTests -U'
-                        }
+                    sh './mvnw clean package -DskipTests'
+                }
+            }
+        }
+        
+        stage('Test') {
+            steps {
+                dir('Backend') {
+                    sh './mvnw test'
+                }
+            }
+        }
+        
+        stage('Build Docker Image') {
+            steps {
+                sh "docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} -t ${DOCKER_IMAGE}:latest ./Backend"
+            }
+        }
+        
+        stage('Push to Registry') {
+            steps {
+                script {
+                    docker.withRegistry('https://registry.hub.docker.com', 'docker-credentials') {
+                        sh "docker push ${DOCKER_IMAGE}:${DOCKER_TAG}"
+                        sh "docker push ${DOCKER_IMAGE}:latest"
                     }
                 }
             }
         }
         
-        stage('Run Tests') {
+        stage('Deploy') {
             steps {
-                echo "Running Backend Tests"
-                dir('Backend') {
-                    script {
-                        if (isUnix()) {
-                            sh 'mvn test'
-                        } else {
-                            bat 'mvn test'
-                        }
-                    }
-                }
-            }
-        }
-
-        stage('Build Docker Images') {
-            steps {
-                script {
-                    echo "Building Docker Images..."
-                    sh 'docker build -t ${BACKEND_IMAGE}:${IMAGE_TAG} -t ${BACKEND_IMAGE}:latest Backend/'
-                    sh 'docker build -t ${FRONTEND_IMAGE}:${IMAGE_TAG} -t ${FRONTEND_IMAGE}:latest Frontend/'
-                }
-            }
-        }
-
-        stage('Push to Docker Hub') {
-            steps {
-                script {
-                    echo "Pushing images to Docker Hub..."
-                    withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                        sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
-                        sh 'docker push ${BACKEND_IMAGE}:${IMAGE_TAG}'
-                        sh 'docker push ${BACKEND_IMAGE}:latest'
-                        sh 'docker push ${FRONTEND_IMAGE}:${IMAGE_TAG}'
-                        sh 'docker push ${FRONTEND_IMAGE}:latest'
-                    }
-                }
-            }
-        }
-
-        stage('Archive Artifacts') {
-            steps {
-                archiveArtifacts artifacts: 'Backend/target/*.jar', fingerprint: true
-                junit allowEmptyResults: true, testResults: 'Backend/target/surefire-reports/*.xml'
-            }
-        }
-
-        stage('Deploy with Docker Compose') {
-            steps {
-                script {
-                    echo "Deploying application with MySQL and MongoDB..."
-                    sh 'docker-compose down || true'
-                    sh 'docker-compose up -d'
-                    sh 'docker-compose ps'
-                }
+                sh 'docker-compose down'
+                sh 'docker-compose up -d'
             }
         }
     }
-
+    
     post {
+        always {
+            cleanWs()
+        }
         success {
-            echo "✅ Build, Test, and Docker Push SUCCESS"
-            echo "Backend: ${BACKEND_IMAGE}:${IMAGE_TAG}"
-            echo "Frontend: ${FRONTEND_IMAGE}:${IMAGE_TAG}"
+            echo 'Pipeline succeeded!'
         }
         failure {
-            echo "❌ Build FAILED"
+            echo 'Pipeline failed!'
         }
     }
 }
-
-// ============================================
-// Setup Instructions:
-// ============================================
-// 1. Install Jenkins Plugins:
-//    - Docker Pipeline
-//    - Docker plugin
-//    - Git plugin
-//
-// 2. Add Docker Hub Credentials:
-//    Jenkins > Manage Jenkins > Credentials
-//    - ID: dockerhub-credentials
-//    - Username: your Docker Hub username
-//    - Password: your Docker Hub password/token
-//
-// 3. Configure Jenkins Job:
-//    - New Item > Pipeline
-//    - Pipeline script from SCM
-//    - SCM: Git
-//    - Repository URL: https://github.com/harshWarbhe/revTicket.git
-//    - Branch: */master
-//
-// 4. GitHub Webhook (Optional):
-//    GitHub Repo > Settings > Webhooks
-//    - Payload URL: http://your-jenkins-url/github-webhook/
-//    - Content type: application/json
-//    - Events: Push events
-// ============================================

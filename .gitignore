@@ -1,81 +1,20 @@
-# ==========================
-# Java / Spring Boot
-# ==========================
-# Compiled class files
-*.class
+# Maven
+**/target/
+**/pom.xml.tag
+**/pom.xml.releaseBackup
+**/pom.xml.versionsBackup
 
-# Maven / Gradle build
-target/
-build/
+# IDE
+**/.idea/
+**/*.iml
+**/.vscode/
+**/.DS_Store
 
-# Log files
-*.log
+# Environment
+.env
 
-# Package Files
-*.jar
-*.war
-*.nar
-*.ear
-*.zip
-*.tar.gz
-*.rar
+# Logs
+**/*.log
 
-# Application properties
-*.properties
-
-# IDE Files
-# ==========================
-# IntelliJ IDEA
-.idea/
-*.iml
-*.iws
-
-# VS Code
-.vscode/
-
-# Eclipse / STS
-.settings/
-.classpath
-.project
-.sts4-cache
-
-# ==========================
-# OS Files
-# ==========================
-.DS_Store
-Thumbs.db
-
-# ==========================
-# Angular
-# ==========================
-/node_modules/
-/dist/
-/.angular/
-/coverage/
-
-# ==========================
-# Documentation (Keep only essential)
-# ==========================
-*_FLOW_*.md
-*_GUIDE.md
-*_SUMMARY.md
-*_SOLUTION.md
-SETUP.md
-BOOKING_FLOW.md
-LOGIN_CREDENTIALS.md
-
-# ==========================
-# Test Files
-# ==========================
-*.spec.ts
-cypress/
-src/test/
-tsconfig.spec.json
-karma.conf.js
-
-# ==========================
-# Archives
-# ==========================
-*.zip
-*.rar
-*.7z
+# Docker
+**/docker-compose.override.yml
