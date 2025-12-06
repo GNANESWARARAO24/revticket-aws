@@ -2,6 +2,7 @@ pipeline {
     agent any
     
     environment {
+        PATH = "/usr/local/bin:${env.PATH}"
         DOCKER_REGISTRY = 'docker.io'
         DOCKER_CREDENTIALS_ID = 'docker-credentials'
         BACKEND_IMAGE = 'revticket-backend'
