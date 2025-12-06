@@ -61,6 +61,31 @@ pipeline {
             }
         }
 
+        stage('Build Docker Images') {
+            steps {
+                script {
+                    echo "Building Docker Images..."
+                    sh 'docker build -t ${BACKEND_IMAGE}:${IMAGE_TAG} -t ${BACKEND_IMAGE}:latest Backend/'
+                    sh 'docker build -t ${FRONTEND_IMAGE}:${IMAGE_TAG} -t ${FRONTEND_IMAGE}:latest Frontend/'
+                }
+            }
+        }
+
+        stage('Push to Docker Hub') {
+            steps {
+                script {
+                    echo "Pushing images to Docker Hub..."
+                    withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                        sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
+                        sh 'docker push ${BACKEND_IMAGE}:${IMAGE_TAG}'
+                        sh 'docker push ${BACKEND_IMAGE}:latest'
+                        sh 'docker push ${FRONTEND_IMAGE}:${IMAGE_TAG}'
+                        sh 'docker push ${FRONTEND_IMAGE}:latest'
+                    }
+                }
+            }
+        }
+
         stage('Archive Artifacts') {
             steps {
                 archiveArtifacts artifacts: 'Backend/target/*.jar', fingerprint: true
@@ -71,7 +96,9 @@ pipeline {
 
     post {
         success {
-            echo "✅ Build and Tests SUCCESS"
+            echo "✅ Build, Test, and Docker Push SUCCESS"
+            echo "Backend: ${BACKEND_IMAGE}:${IMAGE_TAG}"
+            echo "Frontend: ${FRONTEND_IMAGE}:${IMAGE_TAG}"
         }
         failure {
             echo "❌ Build FAILED"
