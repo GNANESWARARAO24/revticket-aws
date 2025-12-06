@@ -2,14 +2,17 @@ pipeline {
     agent any
     
     environment {
+        DOCKER_REGISTRY = 'docker.io'
+        DOCKER_CREDENTIALS_ID = 'docker-credentials'
         BACKEND_IMAGE = 'revticket-backend'
         FRONTEND_IMAGE = 'revticket-frontend'
-        DOCKER_TAG = "${BUILD_NUMBER}"
-        GIT_COMMIT_HASH = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
-        JAVA_HOME = '/opt/homebrew/Cellar/openjdk@17/17.0.17/libexec/openjdk.jdk/Contents/Home'
-        PATH = "/opt/homebrew/bin:/usr/local/bin:${env.JAVA_HOME}/bin:${env.PATH}"
-        BACKEND_HOST_PORT = '8081'
-        FRONTEND_HOST_PORT = '4200'
+        BUILD_TAG = "${env.BUILD_NUMBER}-${env.GIT_COMMIT?.take(7) ?: 'latest'}"
+    }
+    
+    options {
+        buildDiscarder(logRotator(numToKeepStr: '10'))
+        timeout(time: 30, unit: 'MINUTES')
+        timestamps()
     }
     
     stages {
@@ -19,37 +22,85 @@ pipeline {
             }
         }
         
-        stage('Build & Test Backend') {
+        stage('Start Databases') {
             steps {
-                dir('Backend') {
-                    sh 'java -version'
-                    sh './mvnw clean package'
-                }
-            }
-            post {
-                always {
-                    dir('Backend') {
-                        junit allowEmptyResults: true, testResults: 'target/surefire-reports/*.xml'
-                        archiveArtifacts artifacts: 'target/*.jar', fingerprint: true, allowEmptyArchive: true
+                script {
+                    if (isUnix()) {
+                        sh 'docker-compose up -d mysql mongodb'
+                    } else {
+                        bat 'docker-compose up -d mysql mongodb'
                     }
+                    sleep 30
                 }
             }
         }
         
-        stage('Build & Test Frontend') {
+        stage('Build Backend') {
             steps {
-                dir('Frontend') {
-                    sh 'node --version'
-                    sh 'npm --version'
-                    sh 'npm ci'
-                    sh 'npm run test || true'
-                    sh 'npm run build'
+                dir('Backend') {
+                    script {
+                        if (isUnix()) {
+                            sh './mvnw clean package -DskipTests'
+                        } else {
+                            bat 'mvnw.cmd clean package -DskipTests'
+                        }
+                    }
+                }
+            }
+            post {
+                success {
+                    archiveArtifacts artifacts: 'Backend/target/*.jar', fingerprint: true
+                }
+            }
+        }
+        
+        stage('Test Backend') {
+            steps {
+                dir('Backend') {
+                    script {
+                        if (isUnix()) {
+                            sh './mvnw test'
+                        } else {
+                            bat 'mvnw.cmd test'
+                        }
+                    }
                 }
             }
             post {
                 always {
-                    dir('Frontend') {
-                        archiveArtifacts artifacts: 'dist/**/*', fingerprint: true, allowEmptyArchive: true
+                    junit allowEmptyResults: true, testResults: 'Backend/target/surefire-reports/*.xml'
+                }
+            }
+        }
+        
+        stage('Build Frontend') {
+            steps {
+                dir('Frontend') {
+                    script {
+                        if (isUnix()) {
+                            sh 'npm ci && npm run build'
+                        } else {
+                            bat 'npm ci && npm run build'
+                        }
+                    }
+                }
+            }
+            post {
+                success {
+                    archiveArtifacts artifacts: 'Frontend/dist/**/*', fingerprint: true
+                }
+            }
+        }
+        
+        stage('Test Frontend') {
+            steps {
+                dir('Frontend') {
+                    script {
+                        if (isUnix()) {
+                            sh 'npm run test || true'
+                        } else {
+                            bat 'npm run test || exit 0'
+                        }
                     }
                 }
             }
@@ -57,14 +108,30 @@ pipeline {
         
         stage('Build Docker Images') {
             parallel {
-                stage('Build Backend Image') {
+                stage('Backend Image') {
                     steps {
-                        sh "docker build -t ${BACKEND_IMAGE}:${DOCKER_TAG} -t ${BACKEND_IMAGE}:${GIT_COMMIT_HASH} -t ${BACKEND_IMAGE}:latest ./Backend"
+                        script {
+                            dir('Backend') {
+                                if (isUnix()) {
+                                    sh "docker build -t ${BACKEND_IMAGE}:${BUILD_TAG} -t ${BACKEND_IMAGE}:latest ."
+                                } else {
+                                    bat "docker build -t ${BACKEND_IMAGE}:${BUILD_TAG} -t ${BACKEND_IMAGE}:latest ."
+                                }
+                            }
+                        }
                     }
                 }
-                stage('Build Frontend Image') {
+                stage('Frontend Image') {
                     steps {
-                        sh "docker build -t ${FRONTEND_IMAGE}:${DOCKER_TAG} -t ${FRONTEND_IMAGE}:${GIT_COMMIT_HASH} -t ${FRONTEND_IMAGE}:latest ./Frontend"
+                        script {
+                            dir('Frontend') {
+                                if (isUnix()) {
+                                    sh "docker build -t ${FRONTEND_IMAGE}:${BUILD_TAG} -t ${FRONTEND_IMAGE}:latest ."
+                                } else {
+                                    bat "docker build -t ${FRONTEND_IMAGE}:${BUILD_TAG} -t ${FRONTEND_IMAGE}:latest ."
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -72,25 +139,18 @@ pipeline {
         
         stage('Push to Registry') {
             when {
-                allOf {
-                    anyOf {
-                        branch 'main'
-                        branch 'master'
-                    }
-                    expression { 
-                        return env.PUSH_TO_REGISTRY == 'true'
-                    }
-                }
+                branch 'main'
             }
             steps {
                 script {
-                    docker.withRegistry('https://registry.hub.docker.com', 'docker-credentials') {
-                        sh "docker push ${BACKEND_IMAGE}:${DOCKER_TAG}"
-                        sh "docker push ${BACKEND_IMAGE}:${GIT_COMMIT_HASH}"
-                        sh "docker push ${BACKEND_IMAGE}:latest"
-                        sh "docker push ${FRONTEND_IMAGE}:${DOCKER_TAG}"
-                        sh "docker push ${FRONTEND_IMAGE}:${GIT_COMMIT_HASH}"
-                        sh "docker push ${FRONTEND_IMAGE}:latest"
+                    docker.withRegistry("https://${DOCKER_REGISTRY}", DOCKER_CREDENTIALS_ID) {
+                        if (isUnix()) {
+                            sh "docker push ${BACKEND_IMAGE}:${BUILD_TAG} && docker push ${BACKEND_IMAGE}:latest"
+                            sh "docker push ${FRONTEND_IMAGE}:${BUILD_TAG} && docker push ${FRONTEND_IMAGE}:latest"
+                        } else {
+                            bat "docker push ${BACKEND_IMAGE}:${BUILD_TAG} && docker push ${BACKEND_IMAGE}:latest"
+                            bat "docker push ${FRONTEND_IMAGE}:${BUILD_TAG} && docker push ${FRONTEND_IMAGE}:latest"
+                        }
                     }
                 }
             }
@@ -98,36 +158,66 @@ pipeline {
         
         stage('Deploy') {
             steps {
-                sh 'docker-compose down || true'
-                sh "BACKEND_HOST_PORT=${BACKEND_HOST_PORT} FRONTEND_HOST_PORT=${FRONTEND_HOST_PORT} docker-compose up -d"
-                sh 'sleep 30'
-                sh 'docker-compose ps'
+                script {
+                    if (isUnix()) {
+                        sh 'docker-compose up -d --build backend frontend'
+                    } else {
+                        bat 'docker-compose up -d --build backend frontend'
+                    }
+                }
             }
         }
         
         stage('Health Check') {
             steps {
                 script {
-                    retry(10) {
-                        sleep 10
-                        sh "curl -f -s http://localhost:${BACKEND_HOST_PORT}/actuator/health || exit 1"
+                    timeout(time: 3, unit: 'MINUTES') {
+                        waitUntil {
+                            script {
+                                def status
+                                if (isUnix()) {
+                                    status = sh(
+                                        script: 'curl -s -o /dev/null -w "%{http_code}" http://localhost:8081/actuator/health || echo 000',
+                                        returnStdout: true
+                                    ).trim()
+                                } else {
+                                    status = bat(
+                                        script: '@curl -s -o nul -w "%%{http_code}" http://localhost:8081/actuator/health || echo 000',
+                                        returnStdout: true
+                                    ).trim()
+                                }
+                                return status == '200'
+                            }
+                        }
                     }
+                    echo 'Application is healthy!'
                 }
-                echo 'Application is healthy and ready!'
             }
         }
     }
     
     post {
         always {
-            sh 'docker system prune -f || true'
+            script {
+                if (isUnix()) {
+                    sh 'docker system prune -f || true'
+                } else {
+                    bat 'docker system prune -f || exit 0'
+                }
+            }
         }
         success {
-            echo 'Pipeline succeeded! Application deployed successfully.'
+            echo "✅ Pipeline completed successfully - Build #${BUILD_NUMBER}"
         }
         failure {
-            echo 'Pipeline failed! Check logs for details.'
-            sh 'docker-compose logs || true'
+            echo "❌ Pipeline failed - Check logs for details"
+            script {
+                if (isUnix()) {
+                    sh 'docker-compose logs --tail=50 || true'
+                } else {
+                    bat 'docker-compose logs --tail=50 || exit 0'
+                }
+            }
         }
         cleanup {
             cleanWs()
