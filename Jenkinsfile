@@ -13,8 +13,7 @@ pipeline {
     
     environment {
         // Docker Hub Configuration
-        DOCKERHUB_CREDENTIALS = credentials('dockerhub-credentials')
-        DOCKERHUB_USERNAME = 'harshwarbhe'  // Change this
+        DOCKERHUB_USERNAME = 'harshwarbhe'
         BACKEND_IMAGE = "${DOCKERHUB_USERNAME}/revticket-backend"
         FRONTEND_IMAGE = "${DOCKERHUB_USERNAME}/revticket-frontend"
         IMAGE_TAG = "${BUILD_NUMBER}"
@@ -24,17 +23,14 @@ pipeline {
         
         stage('Checkout') {
             steps {
-                echo "Checking out branch: ${BRANCH_NAME}"
-                checkout([$class: 'GitSCM',
-                    branches: [[name: "*/${BRANCH_NAME}"]],
-                    userRemoteConfigs: [[url: 'https://github.com/harshWarbhe/revTicket.git']]
-                ])
+                echo "Checking out code from GitHub..."
+                git branch: 'master', url: 'https://github.com/harshWarbhe/revTicket.git'
             }
         }
 
         stage('Build Backend') {
             steps {
-                echo "Building Backend on branch: ${BRANCH_NAME}"
+                echo "Building Backend..."
                 dir('Backend') {
                     script {
                         if (isUnix()) {
@@ -63,7 +59,6 @@ pipeline {
         }
 
         stage('Build Docker Images') {
-            when { branch 'master' }
             steps {
                 script {
                     echo "Building Docker Images..."
@@ -84,7 +79,6 @@ pipeline {
         }
 
         stage('Push to Docker Hub') {
-            when { branch 'master' }
             steps {
                 script {
                     echo "Pushing images to Docker Hub..."
@@ -102,7 +96,6 @@ pipeline {
         }
 
         stage('Deploy with Docker Compose') {
-            when { branch 'master' }
             steps {
                 script {
                     echo "Deploying application..."
@@ -118,7 +111,6 @@ pipeline {
         }
 
         stage('Archive Artifacts') {
-            when { branch 'master' }
             steps {
                 archiveArtifacts artifacts: 'Backend/target/*.jar', fingerprint: true
                 junit allowEmptyResults: true, testResults: 'Backend/target/surefire-reports/*.xml'
@@ -128,24 +120,18 @@ pipeline {
 
     post {
         always {
-            echo "Cleaning up workspace..."
             script {
-                // Clean up Docker images to save space
-                if (isUnix()) {
-                    sh 'docker system prune -f'
-                } else {
-                    bat 'docker system prune -f'
-                }
+                echo "Cleaning up workspace..."
+                sh 'docker system prune -f || true'
             }
-            cleanWs()
         }
         success {
-            echo "✅ Build and Deployment SUCCESS on branch: ${BRANCH_NAME}"
+            echo "✅ Build and Deployment SUCCESS"
             echo "Backend Image: ${BACKEND_IMAGE}:${IMAGE_TAG}"
             echo "Frontend Image: ${FRONTEND_IMAGE}:${IMAGE_TAG}"
         }
         failure {
-            echo "❌ Build FAILED on branch: ${BRANCH_NAME}"
+            echo "❌ Build FAILED"
         }
     }
 }
@@ -165,9 +151,11 @@ pipeline {
 //    - Password: your Docker Hub password/token
 //
 // 3. Configure Jenkins Job:
-//    - New Item > Multibranch Pipeline
-//    - Branch Sources > Git
+//    - New Item > Pipeline
+//    - Pipeline script from SCM
+//    - SCM: Git
 //    - Repository URL: https://github.com/harshWarbhe/revTicket.git
+//    - Branch: */master
 //
 // 4. GitHub Webhook (Optional):
 //    GitHub Repo > Settings > Webhooks
