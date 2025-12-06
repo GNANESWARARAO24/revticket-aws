@@ -14,7 +14,7 @@ pipeline {
     environment {
         // Docker Hub Configuration
         DOCKERHUB_CREDENTIALS = credentials('dockerhub-credentials')
-        DOCKERHUB_USERNAME = 'your-dockerhub-username'  // Change this
+        DOCKERHUB_USERNAME = 'harshwarbhe'  // Change this
         BACKEND_IMAGE = "${DOCKERHUB_USERNAME}/revticket-backend"
         FRONTEND_IMAGE = "${DOCKERHUB_USERNAME}/revticket-frontend"
         IMAGE_TAG = "${BUILD_NUMBER}"
