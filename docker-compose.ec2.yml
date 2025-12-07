@@ -9,14 +9,14 @@ services:
     volumes:
       - mysql_data:/var/lib/mysql
     restart: unless-stopped
-    mem_limit: 256m
+    mem_limit: 200m
 
   mongodb:
     image: mongo:7.0
     volumes:
       - mongo_data:/data/db
     restart: unless-stopped
-    mem_limit: 256m
+    mem_limit: 150m
 
   backend:
     image: ${ECR_REGISTRY}/revticket-backend:latest
@@ -25,13 +25,14 @@ services:
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: tiger
       SPRING_DATA_MONGODB_URI: mongodb://mongodb:27017/revticket
+      JAVA_OPTS: "-Xmx150m -Xms100m"
     ports:
       - "8080:8080"
     depends_on:
       - mysql
       - mongodb
     restart: unless-stopped
-    mem_limit: 384m
+    mem_limit: 200m
 
   frontend:
     image: ${ECR_REGISTRY}/revticket-frontend:latest
@@ -40,7 +41,7 @@ services:
     depends_on:
       - backend
     restart: unless-stopped
-    mem_limit: 128m
+    mem_limit: 100m
 
 volumes:
   mysql_data:

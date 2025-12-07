@@ -52,7 +52,7 @@ pipeline {
             steps {
                 withCredentials([sshUserPrivateKey(credentialsId: 'ec2-ssh-key', keyFileVariable: 'SSH_KEY')]) {
                     bat """
-                        ssh -i %SSH_KEY% -o StrictHostKeyChecking=no ec2-user@%EC2_HOST% "aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_REGISTRY} && cd ~/revticket && export ECR_REGISTRY=${ECR_REGISTRY} && docker-compose pull && docker-compose up -d"
+                        ssh -i %SSH_KEY% -o StrictHostKeyChecking=no ec2-user@%EC2_HOST% "aws ecr get-login-password --region %AWS_REGION% | docker login --username AWS --password-stdin %ECR_REGISTRY% && cd ~/revticket && export ECR_REGISTRY=%ECR_REGISTRY% && docker-compose pull && docker-compose up -d"
                     """
                 }
             }
