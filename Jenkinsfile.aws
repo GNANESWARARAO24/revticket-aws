@@ -25,8 +25,12 @@ pipeline {
         
         stage('Build Images') {
             steps {
-                bat "docker build -t revticket-backend:${BUILD_NUMBER} ./Backend"
-                bat "docker build -t revticket-frontend:${BUILD_NUMBER} ./Frontend"
+                dir('Backend') {
+                    bat "docker build -t revticket-backend:${BUILD_NUMBER} ."
+                }
+                dir('Frontend') {
+                    bat "docker build -t revticket-frontend:${BUILD_NUMBER} ."
+                }
             }
         }
         
