@@ -74,7 +74,7 @@ Databases run in Docker containers with persistent volumes:
 - MongoDB: `mongo_data` volume
 
 Default credentials (change in production):
-- MySQL: root/Admin123
+- MySQL: root/tiger
 - MongoDB: No authentication
 
 ## Troubleshooting
