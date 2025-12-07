@@ -1,0 +1,69 @@
+pipeline {
+    agent any
+    
+    environment {
+        AWS_REGION = 'ap-south-2'
+        AWS_ACCOUNT_ID = credentials('aws-account-id')
+        ECR_REGISTRY = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+        EC2_HOST = credentials('ec2-host')
+    }
+    
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+        
+        stage('Build JAR') {
+            steps {
+                dir('Backend') {
+                    bat 'mvnw.cmd clean package -DskipTests'
+                }
+            }
+        }
+        
+        stage('Build Images') {
+            steps {
+                bat "docker build -t revticket-backend:${BUILD_NUMBER} ./Backend"
+                bat "docker build -t revticket-frontend:${BUILD_NUMBER} ./Frontend"
+            }
+        }
+        
+        stage('Push to ECR') {
+            steps {
+                withAWS(credentials: 'aws-credentials', region: "${AWS_REGION}") {
+                    bat """
+                        aws ecr get-login-password --region %AWS_REGION% | docker login --username AWS --password-stdin %ECR_REGISTRY%
+                        docker tag revticket-backend:%BUILD_NUMBER% %ECR_REGISTRY%/revticket-backend:latest
+                        docker push %ECR_REGISTRY%/revticket-backend:latest
+                        docker tag revticket-frontend:%BUILD_NUMBER% %ECR_REGISTRY%/revticket-frontend:latest
+                        docker push %ECR_REGISTRY%/revticket-frontend:latest
+                    """
+                }
+            }
+        }
+        
+        stage('Deploy to EC2') {
+            steps {
+                sshagent(['ec2-ssh-key']) {
+                    bat """
+                        ssh -o StrictHostKeyChecking=no ec2-user@%EC2_HOST% "aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_REGISTRY} && cd ~/revticket && export ECR_REGISTRY=${ECR_REGISTRY} && docker-compose pull && docker-compose up -d"
+                    """
+                }
+            }
+        }
+    }
+    
+    post {
+        always {
+            bat 'docker system prune -f || exit 0'
+        }
+        success {
+            echo "✅ Deployed successfully to EC2"
+        }
+        failure {
+            echo "❌ Deployment failed"
+        }
+    }
+}

@@ -1,4 +1,3 @@
-target/
 .git/
 .gitignore
 *.md
@@ -7,3 +6,4 @@ target/
 .vscode/
 *.iml
 *.log
+target/

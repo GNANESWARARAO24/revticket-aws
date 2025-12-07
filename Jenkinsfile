@@ -3,7 +3,7 @@ pipeline {
     
     environment {
         PATH = "/usr/local/bin:${env.PATH}"
-        DOCKER_HUB_USERNAME = 'harshwarbhe'
+        DOCKER_HUB_USERNAME = 'gnaneswara24'
         BACKEND_IMAGE = "${DOCKER_HUB_USERNAME}/revticket-backend"
         FRONTEND_IMAGE = "${DOCKER_HUB_USERNAME}/revticket-frontend"
         BUILD_TAG = "${env.BUILD_NUMBER}"

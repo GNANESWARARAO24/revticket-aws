@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: tiger
+      MYSQL_DATABASE: revticket
+    volumes:
+      - mysql_data:/var/lib/mysql
+    restart: unless-stopped
+    mem_limit: 256m
+
+  mongodb:
+    image: mongo:7.0
+    volumes:
+      - mongo_data:/data/db
+    restart: unless-stopped
+    mem_limit: 256m
+
+  backend:
+    image: ${ECR_REGISTRY}/revticket-backend:latest
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/revticket
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: tiger
+      SPRING_DATA_MONGODB_URI: mongodb://mongodb:27017/revticket
+    ports:
+      - "8080:8080"
+    depends_on:
+      - mysql
+      - mongodb
+    restart: unless-stopped
+    mem_limit: 384m
+
+  frontend:
+    image: ${ECR_REGISTRY}/revticket-frontend:latest
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+    mem_limit: 128m
+
+volumes:
+  mysql_data:
+  mongo_data:
