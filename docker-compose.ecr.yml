@@ -1,0 +1,69 @@
+ports:
+  - "8080:8080"  # Changed from 8081:8080
+ports:
+  - "8080:8080"  # Changed from 8081:8080
+ports:
+  - "8080:8080"  # Changed from 8081:8080
+- **Backend API**: http://localhost:8080
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: revticket-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: tiger
+      MYSQL_DATABASE: revticket
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - revticket-network
+
+  mongodb:
+    image: mongo:7.0
+    container_name: revticket-mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - revticket-network
+
+  backend:
+    image: ${ECR_REGISTRY}/revticket-backend:latest
+    container_name: revticket-backend
+    ports:
+      - "8081:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/revticket
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=tiger
+      - SPRING_DATA_MONGODB_URI=mongodb://mongodb:27017/revticket
+    depends_on:
+      - mysql
+      - mongodb
+    networks:
+      - revticket-network
+    restart: unless-stopped
+
+  frontend:
+    image: ${ECR_REGISTRY}/revticket-frontend:latest
+    container_name: revticket-frontend
+    ports:
+      - "4200:80"
+    depends_on:
+      - backend
+    networks:
+      - revticket-network
+    restart: unless-stopped
+
+volumes:
+  mysql_data:
+  mongo_data:
+
+networks:
+  revticket-network:
+    driver: bridge
